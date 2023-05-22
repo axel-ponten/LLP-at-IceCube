@@ -3,6 +3,7 @@ This tray simulates Dark Leptonic Scalar production from a MuonGun spectrum.
 An icetray environment which has the Long Lived Particle modified version of PROPOSAL is needed.
 """
 
+import math
 from icecube.simprod.util import ReadI3Summary, WriteI3Summary
 from icecube.simprod.util import CombineHits, DrivingTime, SetGPUEnvironmentVariables
 import os.path
@@ -11,6 +12,7 @@ from icecube.simprod.util.simprodtray import RunI3Tray
 import argparse
 import icecube.icetray
 import icecube.dataclasses
+from icecube.dataclasses import *
 import icecube.dataio
 import icecube.phys_services
 from I3Tray import I3Tray, I3Units
@@ -20,11 +22,12 @@ from icecube import clsim
 from icecube import polyplopia
 from icecube import phys_services
 from icecube import PROPOSAL
+from icecube import icetray
 from icecube.production_histograms import ProductionHistogramModule
 from icecube.production_histograms.histogram_modules.simulation.mctree_primary import I3MCTreePrimaryModule
 from icecube.production_histograms.histogram_modules.simulation.mctree import I3MCTreeModule
 from icecube.production_histograms.histogram_modules.simulation.mcpe_module import I3MCPEModule
-
+import icecube
 
 def add_args(parser):
     """
@@ -125,6 +128,20 @@ def add_args(parser):
 
 
 
+def WriteLLPInformation(frame):
+    LLPinfo = dataclasses.I3MapStringDouble()
+    
+    LLPinfo["gap_length"] = 0
+    LLPinfo["prod_x"] = -9999
+    LLPinfo["prod_y"] = -9999
+    LLPinfo["prod_y"] = -9999
+    
+    tree = frame["I3MCTree"]
+    
+    frame["LLPInformation"] = LLPinfo
+    return True
+    
+    
 class PropagateWithLLP(icetray.I3Module):
     def __init__(self, ctx):
         icetray.I3Module.__init__(self,ctx)
@@ -132,7 +149,7 @@ class PropagateWithLLP(icetray.I3Module):
         self.PROPOSAL_config_SM = ""
         self.AddParameter("PROPOSAL_config_SM", "PROPOSAL config without LLP production", self.PROPOSAL_config_SM)
         self.PROPOSAL_config_LLP = ""
-        self.AddParameter("PROPOSAL_config_SM", "PROPOSAL config with LLP production", self.PROPOSAL_config_LLP)
+        self.AddParameter("PROPOSAL_config_LLP", "PROPOSAL config with LLP production", self.PROPOSAL_config_LLP)
         self.force_LLP = False
         self.AddParameter("force_LLP", "Repropagate events that did not produce an LLP", self.force_LLP)
         
@@ -146,6 +163,8 @@ class PropagateWithLLP(icetray.I3Module):
         self.propagator_SM = PROPOSAL.I3PropagatorServicePROPOSAL(config_file=self.PROPOSAL_config_SM)
         self.propagator_LLP = PROPOSAL.I3PropagatorServicePROPOSAL(config_file=self.PROPOSAL_config_LLP)
         
+        self.force_LLP = self.GetParameter("force_LLP")
+        
         # create cascade propagators
         MaxMuons = 10
         SplitSubPeVCascades = True
@@ -157,41 +176,63 @@ class PropagateWithLLP(icetray.I3Module):
             self.cascade_propagator.SetThresholdSplit(1*I3Units.PeV)
         self.cascade_propagator.SetMaxMuons(MaxMuons)
         
+        # which particles can be propagated where?
+        self.propagatable_particles = [13, -13, 15, -15] # for PROPOSAL
+        self.cascade_particles = icecube.sim_services.ShowerParameters.supported_types # for cmc
+        
     
     def DAQ(self, frame):
-        # check here for logic? https://github.com/icecube/icetray/blob/9b7d6278df63fe59ca8ef8f3924a5ebae3ce6137/sim-services/private/sim-services/I3PropagatorModule.cxx
+        # reference: https://github.com/icecube/icetray/blob/9b7d6278df63fe59ca8ef8f3924a5ebae3ce6137/sim-services/private/sim-services/I3PropagatorModule.cxx
+        
         # reset LLP count
         self.LLPcount = 0
-        tree_premuonprop = frame["I3Tree_preMuonProp"]
-        self.output_tree = I3MCTree(tree_premuonprop)
         
-        # propagate
+        # propagate the primary's children
+        tree_premuonprop = frame["I3MCTree_preMuonProp"]
         primary_children = tree_premuonprop.children(tree_premuonprop.get_head())
-        self.RecursivePropagation(primary_children)
-        # save all particles which we know how to propagate (no neutrinos etc.)
-
-        if self.force_LLP and self.LLPcount == 0:
-            # repropagate
-            pass
-        
+        #if self.force_LLP:
+        #    while self.LLPcount == 0:
+        #        self.output_tree = I3MCTree(tree_premuonprop)
+        #        self.RecursivePropagation(primary_children)
+        #else:
+        #    self.output_tree = I3MCTree(tree_premuonprop)
+        #    self.RecursivePropagation(primary_children)
         # TODO: include LLP info in some frame object
+        self.output_tree = I3MCTree(tree_premuonprop)
+        self.RecursivePropagation(primary_children)
         
         # write outputtree
         frame["I3MCTree"] = self.output_tree
+        
         # push frame
-        self.PushFrame(frame)
+        if self.force_LLP:
+            if self.LLPcount > 0:
+                self.PushFrame(frame)
+        else:
+            self.PushFrame(frame)
     
     def RecursivePropagation(self, particle_list):
-        # somewhere here use tree.append_children(id, ListI3Particle)
-        
-        propagatable_particles = [13, -13]
         
         for p in particle_list:
-            if p.type in propagatable_particles:
+            if p.type == 0:
+                gap_length = p.length
+                production_vertex = p.pos
+                self.LLPcount += 1
+                print("LLP production at", production_vertex, "with gap length", gap_length)
+            if p.type in self.propagatable_particles and math.isnan(p.length):
                 if self.LLPcount > 0:
                     daughters = self.propagator_SM.Propagate(p)
                 else:
                     daughters = self.propagator_LLP.Propagate(p)
+                for d in daughters:
+                    # match output of I3PropagatorModule
+                    if abs(d.type) > 2000000000:
+                        d.length = 0
+                self.output_tree.append_children(p.id, daughters)
+                self.output_tree.at(p.id).length = p.length #updated length
+                self.RecursivePropagation(daughters) # recursive propagation of daughters
+            elif p.type in self.cascade_particles and math.isnan(p.length):
+                daughters = self.cascade_propagator.Propagate(p)
                 self.output_tree.append_children(p.id, daughters)
                 self.RecursivePropagation(daughters) # recursive propagation of daughters
         return
@@ -199,6 +240,44 @@ class PropagateWithLLP(icetray.I3Module):
     def Finish(self):
         pass
         
+        
+
+def make_standard_propagators(SplitSubPeVCascades=True,
+                              EmitTrackSegments=True,
+                              MaxMuons=10,
+                              PROPOSAL_config_file="config_SM.json"):
+    """
+    Set up standard propagators (PROPOSAL for muons and taus, CMC for cascades)
+
+    :param bool SplitSubPeVCascades: Split cascades into segments above 1 TeV. Otherwise, split only above 1 PeV.
+    :param bool EmitTrackSegments:   Emit constant-energy track slices in addition to stochastic losses (similar to the output of I3MuonSlicer)
+    :param str PROPOSAL_config_file: Path to PROPOSAL config file
+
+    Keyword arguments will be passed to I3PropagatorServicePROPOSAL
+    """
+    from icecube.icetray import I3Units
+
+    cascade_propagator = icecube.cmc.I3CascadeMCService(
+        icecube.phys_services.I3GSLRandomService(1))  # Dummy RNG
+    cascade_propagator.SetEnergyThresholdSimulation(1*I3Units.PeV)
+    if SplitSubPeVCascades:
+        cascade_propagator.SetThresholdSplit(1*I3Units.TeV)
+    else:
+        cascade_propagator.SetThresholdSplit(1*I3Units.PeV)
+    cascade_propagator.SetMaxMuons(MaxMuons)
+    muon_propagator = icecube.PROPOSAL.I3PropagatorServicePROPOSAL(
+            config_file=PROPOSAL_config_file, slice_tracks=EmitTrackSegments)
+    propagator_map =\
+        icecube.sim_services.I3ParticleTypePropagatorServiceMap()
+
+    for pt in "MuMinus", "MuPlus", "TauMinus", "TauPlus":
+        key = getattr(icecube.dataclasses.I3Particle.ParticleType, pt)
+        propagator_map[key] = muon_propagator
+
+    for key in icecube.sim_services.ShowerParameters.supported_types:
+        propagator_map[key] = cascade_propagator
+    
+    return propagator_map
 
 # Get Params
 #parser = argparse.ArgumentParser(description="MuonGunGenerator script")
@@ -217,18 +296,36 @@ tray.AddModule("I3InfiniteSource", "TheSource",
                Stream=icecube.icetray.I3Frame.DAQ)
 
 tray.AddSegment(GenerateNaturalRateMuons, "muongun",
-                NumEvents=10,
+                NumEvents=100,
+                GCDFile="../../muon-bkg-study/gcdfile.i3.gz",
                 mctree_name="I3MCTree_preMuonProp",
                 flux_model="GaisserH4a_atmod12_SIBYLL")
 
+
+#propagators = make_standard_propagators()
+#tray.AddModule("I3PropagatorModule", "propagator",
+#               PropagatorServices=propagators,
+#               RandomService=rand,
+#               InputMCTreeName="I3MCTree_preMuonProp",
+#               OutputMCTreeName="I3MCTree",
+#               RNGStateName="")
+#tray.AddSegment(PropagateMuons,
+#                "propagator",
+#                RandomService=rand,
+#                InputMCTreeName="I3MCTree_preMuonProp",
+#                OutputMCTreeName="I3MCTree",
+#                PROPOSAL_config_file="config_DLS.json",
+#                EmitTrackSegments=False,
+#               )
+
 tray.Add(PropagateWithLLP,
-         Stream=icecube.icetray.I3Frame.DAQ,
          PROPOSAL_config_SM="config_SM.json",
          PROPOSAL_config_LLP="config_DLS.json",
-         force_LLP = True
+         force_LLP = True,
         )
 
-tray.Add("I3Writer", filename="test.i3")
+
+tray.Add("I3Writer", filename="test2.i3")
 
 tray.Execute()
 
