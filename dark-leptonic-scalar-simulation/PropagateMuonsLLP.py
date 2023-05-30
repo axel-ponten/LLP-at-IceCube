@@ -12,7 +12,7 @@ import icecube.simclasses
 import icecube.cmc
 import icecube.PROPOSAL
 import json
-from I3PropagatorServicePROPOSAL_subclass import I3PropagatorServicePROPOSAL_subclass
+from I3PropagatorServicePROPOSAL_LLP import I3PropagatorServicePROPOSAL_LLP
 
 default_media_definition = os.path.expandvars(
     "$I3_BUILD/PROPOSAL/resources/config_icesim.json")
@@ -58,7 +58,7 @@ def PropagateMuonsLLP(tray, name,
     if CylinderLength is not None:
         icecube.icetray.logging.log_warn(
             "The CylinderLength now should be set in the configuration file in the detector configuration")
-    propagators = make_standard_propagators(**kwargs)
+    propagators, muon_propagator = make_standard_propagators(tray, **kwargs)
 
     # Set up propagators.
     if "I3ParticleTypePropagatorServiceMap" in tray.context:
@@ -73,6 +73,19 @@ def PropagateMuonsLLP(tray, name,
     else:
         rng_state = ""
 
+
+    # reset the LLP info
+    tray.Add(lambda frame : muon_propagator.reset(), 
+             Streams=[icecube.icetray.I3Frame.DAQ])
+    """
+    def reset_LLP_info(frame, propagator):
+        muon_propagator.reset() # only works for I3PropagatorServicePROPOSAL_LLP
+        return True
+    tray.AddModule(reset_LLP_info,
+                   propagator = muon_propagator,
+                   Streams=[icecube.icetray.I3Frame.DAQ])
+    """
+    
     tray.AddModule("I3PropagatorModule", name+"_propagator",
                    PropagatorServices=propagator_map,
                    RandomService=RandomService,
@@ -80,6 +93,10 @@ def PropagateMuonsLLP(tray, name,
                    OutputMCTreeName=OutputMCTreeName,
                    RNGStateName=rng_state)
 
+    # write LLP information to frame
+    tray.Add(lambda frame : muon_propagator.write_LLPInfo(frame), 
+             Streams=[icecube.icetray.I3Frame.DAQ])
+    
     # Add empty MMCTrackList objects for events that have none.
     def add_empty_tracklist(frame):
         if "MMCTrackList" not in frame:
@@ -91,7 +108,8 @@ def PropagateMuonsLLP(tray, name,
 
     return
 
-def make_standard_propagators(SplitSubPeVCascades=True,
+def make_standard_propagators(tray,
+                              SplitSubPeVCascades=True,
                               EmitTrackSegments=True,
                               MaxMuons=10,
                               PROPOSAL_config_file=default_media_definition):
@@ -116,17 +134,11 @@ def make_standard_propagators(SplitSubPeVCascades=True,
     cascade_propagator.SetMaxMuons(MaxMuons)
     
     #muon_propagator = icecube.PROPOSAL.I3PropagatorServicePROPOSAL(config_file=PROPOSAL_config_file)
-    muon_propagator = I3PropagatorServicePROPOSAL_subclass(config_file=PROPOSAL_config_file)
+    muon_propagator = I3PropagatorServicePROPOSAL_LLP()
     
-    print(dir(muon_propagator.DiagnosticMap))
-    print(dir(muon_propagator))
-    print(dir(muon_propagator.sm_propagator))
     propagator_map =\
         icecube.sim_services.I3ParticleTypePropagatorServiceMap()
 
-    #print(help(propagator_map))
-    print(dir(propagator_map))
-    #print(type(propagator_map))
     for pt in "MuMinus", "MuPlus", "TauMinus", "TauPlus":
         key = getattr(icecube.dataclasses.I3Particle.ParticleType, pt)
         propagator_map[key] = muon_propagator
@@ -134,5 +146,5 @@ def make_standard_propagators(SplitSubPeVCascades=True,
     for key in icecube.sim_services.ShowerParameters.supported_types:
         propagator_map[key] = cascade_propagator
     
-    return propagator_map
+    return propagator_map, muon_propagator
 

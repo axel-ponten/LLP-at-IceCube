@@ -30,7 +30,7 @@
 		"ioniz_multiplier" : 1,
 		"epair_multiplier" : 1,
 		"weak_multiplier"  : 1,
-		"llp_multiplier"   : 1E-28,
+		"llp_multiplier"   : 1E-26,
 		"llp_mass"         : 0.5,
 		"llp_epsilon"      : 1,
 
