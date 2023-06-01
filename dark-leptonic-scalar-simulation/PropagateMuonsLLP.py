@@ -1,5 +1,5 @@
-"""Tray segments for muon propagation
-
+"""
+Tray segments for muon propagation with Long Lived Particle (LLP) interaction. This is a modification of simprod-scripts PropagateMuons.py
 """
 import os
 
@@ -14,10 +14,6 @@ import icecube.PROPOSAL
 import json
 from I3PropagatorServicePROPOSAL_LLP import I3PropagatorServicePROPOSAL_LLP
 
-default_media_definition = os.path.expandvars(
-    "$I3_BUILD/PROPOSAL/resources/config_icesim.json")
-
-
 @icecube.icetray.traysegment
 def PropagateMuonsLLP(tray, name,
                    RandomService=None,
@@ -26,12 +22,16 @@ def PropagateMuonsLLP(tray, name,
                    SaveState=True,
                    InputMCTreeName="I3MCTree_preMuonProp",
                    OutputMCTreeName="I3MCTree",
+                   PROPOSAL_config_SM="config_SM.json",
+                   PROPOSAL_config_LLP="config_DLS.json",
+                   OnlySaveLLPEvents=True,
                    **kwargs):
     r"""Propagate muons.
 
     This segment propagates muons through ice with ``PROPOSAL``; it
     simulates lepton decays and energy losses due to ionization,
     bremsstrahlung, photonuclear interactions, and pair production.
+    It also includes Long Lived Particle (LLP) production.
 
     :param I3RandomService RandomService:
         Random number generator service
@@ -58,34 +58,22 @@ def PropagateMuonsLLP(tray, name,
     if CylinderLength is not None:
         icecube.icetray.logging.log_warn(
             "The CylinderLength now should be set in the configuration file in the detector configuration")
-    propagators, muon_propagator = make_standard_propagators(tray, **kwargs)
-
-    # Set up propagators.
-    if "I3ParticleTypePropagatorServiceMap" in tray.context:
-        propagator_map = tray.context["I3ParticleTypePropagatorServiceMap"]
-        for k, v in propagators.items():
-            propagator_map[k] = v
-    else:
-        propagator_map = propagators
+    propagator_map, muon_propagator = make_propagators(tray, PROPOSAL_config_SM, PROPOSAL_config_LLP, **kwargs)
 
     if SaveState:
         rng_state = InputMCTreeName+"_RNGState"
     else:
         rng_state = ""
 
-
-    # reset the LLP info
+    # write simulation information to S frame
+    tray.Add(write_simulation_information,
+             PROPOSAL_config_LLP = PROPOSAL_config_LLP,
+             Streams=[icecube.icetray.I3Frame.Simulation])
+    
+    # reset the LLP info before each event
     tray.Add(lambda frame : muon_propagator.reset(), 
              Streams=[icecube.icetray.I3Frame.DAQ])
-    """
-    def reset_LLP_info(frame, propagator):
-        muon_propagator.reset() # only works for I3PropagatorServicePROPOSAL_LLP
-        return True
-    tray.AddModule(reset_LLP_info,
-                   propagator = muon_propagator,
-                   Streams=[icecube.icetray.I3Frame.DAQ])
-    """
-    
+
     tray.AddModule("I3PropagatorModule", name+"_propagator",
                    PropagatorServices=propagator_map,
                    RandomService=RandomService,
@@ -96,6 +84,11 @@ def PropagateMuonsLLP(tray, name,
     # write LLP information to frame
     tray.Add(lambda frame : muon_propagator.write_LLPInfo(frame), 
              Streams=[icecube.icetray.I3Frame.DAQ])
+    
+    if OnlySaveLLPEvents:
+        # throw event away if no LLP interaction
+        tray.Add(lambda frame : bool(frame["LLPInfo"]["interaction"]), 
+                 Streams=[icecube.icetray.I3Frame.DAQ])
     
     # Add empty MMCTrackList objects for events that have none.
     def add_empty_tracklist(frame):
@@ -108,19 +101,18 @@ def PropagateMuonsLLP(tray, name,
 
     return
 
-def make_standard_propagators(tray,
-                              SplitSubPeVCascades=True,
-                              EmitTrackSegments=True,
-                              MaxMuons=10,
-                              PROPOSAL_config_file=default_media_definition):
+def make_propagators(tray,                     
+                     PROPOSAL_config_SM,
+                     PROPOSAL_config_LLP,
+                     SplitSubPeVCascades=True,
+                     EmitTrackSegments=True,
+                     MaxMuons=10,
+                     ):
     """
-    Set up standard propagators (PROPOSAL for muons and taus, CMC for cascades)
+    Set up propagators (PROPOSAL for muons and taus with LLP interaction, CMC for cascades)
 
     :param bool SplitSubPeVCascades: Split cascades into segments above 1 TeV. Otherwise, split only above 1 PeV.
-    :param bool EmitTrackSegments:   Emit constant-energy track slices in addition to stochastic losses (similar to the output of I3MuonSlicer)
-    :param str PROPOSAL_config_file: Path to PROPOSAL config file
-
-    Keyword arguments will be passed to I3PropagatorServicePROPOSAL
+    
     """
     from icecube.icetray import I3Units
 
@@ -134,10 +126,9 @@ def make_standard_propagators(tray,
     cascade_propagator.SetMaxMuons(MaxMuons)
     
     #muon_propagator = icecube.PROPOSAL.I3PropagatorServicePROPOSAL(config_file=PROPOSAL_config_file)
-    muon_propagator = I3PropagatorServicePROPOSAL_LLP()
+    muon_propagator = I3PropagatorServicePROPOSAL_LLP(PROPOSAL_config_SM, PROPOSAL_config_LLP)
     
-    propagator_map =\
-        icecube.sim_services.I3ParticleTypePropagatorServiceMap()
+    propagator_map = icecube.sim_services.I3ParticleTypePropagatorServiceMap()
 
     for pt in "MuMinus", "MuPlus", "TauMinus", "TauPlus":
         key = getattr(icecube.dataclasses.I3Particle.ParticleType, pt)
@@ -148,3 +139,18 @@ def make_standard_propagators(tray,
     
     return propagator_map, muon_propagator
 
+def write_simulation_information(frame, PROPOSAL_config_LLP):
+    """ Write LLP multiplier, mass, epsilon, etc. to S frame """
+    if "LLPConfig" not in frame:
+        file = open(PROPOSAL_config_LLP)
+        config_json = json.load(file)
+        
+        simulation_info = icecube.dataclasses.I3MapStringDouble()
+        simulation_info["llp_multiplier"] = config_json["global"]["llp_multiplier"]
+        simulation_info["mass"] = config_json["global"]["llp_mass"]
+        simulation_info["epsilon"] = config_json["global"]["llp_epsilon"]
+        # TODO: add model to PROPOSAL config and then fix
+        simulation_model = icecube.dataclasses.I3String("DarkLeptonicScalar") #simulation_model["model"] = icecube.dataclasses.I3String(config_json["global"]["llp"])
+
+        frame["LLPConfig"] = simulation_info
+        frame["LLPModel"] = simulation_model

@@ -26,6 +26,7 @@ tray = I3Tray()
 
 rand = phys_services.I3GSLRandomService(seed=0)
 
+n_events = 10
 
 tray.context['I3RandomService'] = rand
 tray.AddModule("I3InfiniteSource", "TheSource",
@@ -33,7 +34,7 @@ tray.AddModule("I3InfiniteSource", "TheSource",
                Stream=icecube.icetray.I3Frame.DAQ)
 
 tray.AddSegment(GenerateNaturalRateMuons, "muongun",
-                NumEvents=10,
+                NumEvents=n_events,
                 GCDFile="../../muon-bkg-study/gcdfile.i3.gz",
                 mctree_name="I3MCTree_preMuonProp",
                 flux_model="GaisserH4a_atmod12_SIBYLL")
@@ -43,8 +44,9 @@ tray.AddSegment(PropagateMuonsLLP,
                 RandomService=rand,
                 InputMCTreeName="I3MCTree_preMuonProp",
                 OutputMCTreeName="I3MCTree",
-                PROPOSAL_config_file="config_SM.json",
-                EmitTrackSegments=False,
+                PROPOSAL_config_SM="config_SM.json",
+                PROPOSAL_config_LLP="config_DLS.json",
+                OnlySaveLLPEvents=True,
                )
 
 tray.Add("I3Writer", filename="test.i3")
