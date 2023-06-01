@@ -37,6 +37,7 @@
 		"epair" : "EpairKelnerKokoulinPetrukhin",
 		"brems" : "BremsKelnerKokoulinPetrukhin",
 		"photo" : "PhotoAbramowiczLevinLevyMaor97",
+        "llp"   : "LLPModelIndependent",
 		"lpm" : true,
 
 		"cuts_infront":
