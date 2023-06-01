@@ -150,7 +150,8 @@ def write_simulation_information(frame, PROPOSAL_config_LLP):
         simulation_info["mass"] = config_json["global"]["llp_mass"]
         simulation_info["epsilon"] = config_json["global"]["llp_epsilon"]
         # TODO: add model to PROPOSAL config and then fix
-        simulation_model = icecube.dataclasses.I3String("DarkLeptonicScalar") #simulation_model["model"] = icecube.dataclasses.I3String(config_json["global"]["llp"])
+        #simulation_model = icecube.dataclasses.I3String("DarkLeptonicScalar")
+        simulation_model = icecube.dataclasses.I3String(config_json["global"]["llp"])
 
         frame["LLPConfig"] = simulation_info
         frame["LLPModel"] = simulation_model
