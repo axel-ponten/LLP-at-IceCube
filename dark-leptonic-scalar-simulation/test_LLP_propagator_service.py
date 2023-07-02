@@ -26,7 +26,7 @@ tray = I3Tray()
 
 rand = phys_services.I3GSLRandomService(seed=0)
 
-n_events = 10
+n_events = 1000
 
 tray.context['I3RandomService'] = rand
 tray.AddModule("I3InfiniteSource", "TheSource",
@@ -35,7 +35,8 @@ tray.AddModule("I3InfiniteSource", "TheSource",
 
 tray.AddSegment(GenerateNaturalRateMuons, "muongun",
                 NumEvents=n_events,
-                GCDFile="../../muon-bkg-study/gcdfile.i3.gz",
+                #GCDFile="../../muon-bkg-study/gcdfile.i3.gz",
+                GCDFile="../GeoCalibDetectorStatus_2021.Run135903.T00S1.Pass2_V1b_Snow211115.i3.gz",
                 mctree_name="I3MCTree_preMuonProp",
                 flux_model="GaisserH4a_atmod12_SIBYLL")
 
