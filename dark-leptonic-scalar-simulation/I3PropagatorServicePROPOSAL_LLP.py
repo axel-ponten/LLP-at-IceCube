@@ -31,6 +31,16 @@ class I3PropagatorServicePROPOSAL_LLP(icecube._sim_services.I3PropagatorService)
         previous_particle_was_LLP = False
         previous_particle_was_secondary_lepton = False
         for d in daughters:
+            if previous_particle_was_secondary_lepton:
+                # first particle of the LLP decay products
+                self.llp_info["decay_asymmetry"] = 1.0*d.energy/self.llp_info["llp_energy"] # energy fraction of first lepton in decay
+                previous_particle_was_secondary_lepton = False
+            if previous_particle_was_LLP:
+                # particle immediately after LLP in I3MCTree (final state lepton at LLP production vertex)
+                parent_energy = self.llp_info["llp_energy"] + d.energy
+                self.llp_info["fractional_energy"] = self.llp_info["llp_energy"]/parent_energy*1.0
+                previous_particle_was_LLP = False
+                previous_particle_was_secondary_lepton = True
             if d.type == 0: # LLP is stored as particle type 'unknown' = 0, no other particle from PROPOSAL is (?)
                 self.llp_counter += 1
                 self.llp_info["length"] = d.length
@@ -41,16 +51,6 @@ class I3PropagatorServicePROPOSAL_LLP(icecube._sim_services.I3PropagatorService)
                 self.llp_info["zenith"] = d.dir.zenith
                 self.llp_info["llp_energy"] = d.energy
                 previous_particle_was_LLP = True
-            if previous_particle_was_LLP:
-                # particle immediately after LLP in I3MCTree (final state lepton at LLP production vertex)
-                parent_energy = self.llp_info["llp_energy"] + d.energy
-                self.llp_info["fractional_energy"] = self.llp_info["llp_energy"]/parent_energy*1.0
-                previous_particle_was_LLP = False
-                previous_particle_was_secondary_lepton = True
-            if previous_particle_was_secondary_lepton:
-                # first particle of the LLP decay products
-                self.llp_info["decay_asymmetry"] = 1.0*d.energy/self.llp_info["llp_energy"] # energy fraction of first lepton in decay
-                previous_particle_was_secondary_lepton = False
         return
     
     def SetRandomNumberGenerator(self, rand_service):
