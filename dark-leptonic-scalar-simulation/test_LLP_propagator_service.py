@@ -26,7 +26,7 @@ tray = I3Tray()
 
 rand = phys_services.I3GSLRandomService(seed=0)
 
-n_events = 1000
+n_events = 10
 
 tray.context['I3RandomService'] = rand
 tray.AddModule("I3InfiniteSource", "TheSource",
@@ -47,7 +47,7 @@ tray.AddSegment(PropagateMuonsLLP,
                 OutputMCTreeName="I3MCTree",
                 PROPOSAL_config_SM="config_SM.json",
                 PROPOSAL_config_LLP="config_DLS.json",
-                OnlySaveLLPEvents=True,
+                OnlySaveLLPEvents=False,
                )
 
 tray.Add("I3Writer", filename="test.i3")
