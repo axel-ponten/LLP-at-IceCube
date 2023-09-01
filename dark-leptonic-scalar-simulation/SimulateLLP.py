@@ -1,5 +1,6 @@
 import argparse
 import json
+import shutil
 import os
 import os.path
 from datetime import datetime
@@ -161,15 +162,15 @@ def add_args(parser):
                         help="Number of events MuonGun should simulate.")
     
     parser.add_argument("--gcdfile", dest="gcdfile",
-                        default="resources/GeoCalibDetectorStatus_2021.Run135903.T00S1.Pass2_V1b_Snow211115.i3.gz", type=str, required=False,
+                        default="/data/user/axelpo/LLP-at-IceCube/dark-leptonic-scalar-simulation/resources/GeoCalibDetectorStatus_2021.Run135903.T00S1.Pass2_V1b_Snow211115.i3.gz", type=str, required=False,
                         help="GCD file.")
     
     parser.add_argument("--PROPOSAL-config-SM", dest="config_SM",
-                        default="resources/config_SM.json", type=str, required=False,
+                        default="/data/user/axelpo/LLP-at-IceCube/dark-leptonic-scalar-simulation/resources/config_SM.json", type=str, required=False,
                         help="PROPOSAL config file without LLP.")
     
     parser.add_argument("--PROPOSAL-config-LLP", dest="config_LLP",
-                        default="resources/config_DLS.json", type=str, required=False,
+                        default=None, type=str, required=False,
                         help="PROPOSAL config file with LLP.")
     
     parser.add_argument("--OnlyOneLLP", dest="only_one_LLP",
@@ -188,6 +189,21 @@ def add_args(parser):
                         default=0, type=float, required=False,
                         help="Manually set minimum length for good LLP events. Default is 0 m.")
     
+    parser.add_argument("--LLP-model", dest="LLP-model",
+                        default=None, type=str, required=False,
+                        help="Manually set model of LLP. Default is in config file.")
+    
+    parser.add_argument("--mass", dest="mass",
+                        default=None, type=float, required=False,
+                        help="Manually set mass of LLP. Default is in config file.")
+    
+    parser.add_argument("--eps", dest="eps",
+                        default=None, type=float, required=False,
+                        help="Manually set epsilon of LLP. Default is in config file.")
+    
+    parser.add_argument("--bias", dest="bias",
+                        default=None, type=float, required=False,
+                        help="Manually set bias multiplier of LLP. Default is in config file.")
     
     parser.add_argument("--use-clsim", dest="use-clsim",
                         default=False, action="store_true", required=False,
@@ -418,23 +434,54 @@ parser = argparse.ArgumentParser(description="Full LLP simulation script")
 add_args(parser)
 params = vars(parser.parse_args())  # dict()
 
-# Get PROPOSAL parameters
-file = open(params["config_LLP"])
-config_json = json.load(file)
+# PROPOSAL parameters
+if params["config_LLP"] is None:
+    # if no config file then you must pass all LLP parameters manually
+    if (params["mass"] is None) or (params["eps"] is None) or (params["bias"] is None) or (params["LLP-model"] is None):
+        icetray.logging.log_fatal("If no PROPOSAL LLP config file passed to argparse then you must pass arguments for model, mass, epsilon and bias of the LLP.", "SimulateLLP")
+    file = open(params["config_SM"])
+    config_json = json.load(file)
+    file.close()
+    config_json["global"]["llp_enable"]     = True
+    config_json["global"]["llp_multiplier"] = params["bias"]
+    config_json["global"]["llp_mass"]       = params["mass"]
+    config_json["global"]["llp_epsilon"]    = params["eps"]
+    config_json["global"]["llp"]            = params["LLP-model"]
+else:
+    file = open(params["config_LLP"])
+    config_json = json.load(file)
+    file.close()
+
+# Create directory where to save all output, name contains information about simulation
 llp_multiplier   = config_json["global"]["llp_multiplier"]
 mass             = config_json["global"]["llp_mass"]
 eps              = config_json["global"]["llp_epsilon"]
 simulation_model = config_json["global"]["llp"]
-file.close()
 
-# create directory where to save all output
 if params["dirname"] == "":
-    default_directory_name = simulation_model+".mass-"+str(mass)+".eps-" + str(eps)+".nevents-"+str(params["nevents"]) + "_" + datetime.now().strftime("%y%m%d_%H%M%S") + "/"
+    default_directory_name = simulation_model+".mass-"+str(mass)+".eps-" + str(eps)+".nevents-"+str(params["nevents"]) + "_" + datetime.now().strftime("%y%m%d_%H%M%S") 
     params["dirname"] = default_directory_name
 
 directory_path = params["parentdirectory"] + params["dirname"]
-os.mkdir(directory_path)
-print(params["parentdirectory"])
+if params["natural_rate"]:
+    directory_path += "_naturalrate"
+if params["both_prod_decay_inside"]:
+    directory_path += "_fullycontained"
+if bool(params["min_LLP_length"]):
+    directory_path += "_macrogaps"
+directory_path += "/"
+
+os.makedirs(directory_path)
+
+# copy or save new PROPOSAL config file to path
+if params["config_LLP"] is None:
+    params["config_LLP"] = directory_path + "config_LLP.json"
+    file = open(params["config_LLP"], "w+")
+    file.write(json.dumps(config_json))
+    file.close()
+else:
+    shutil.copy(params["config_LLP"], directory_path)
+
 # Use custom output name?
 if params["outputfile"] == "":
     # default filename
