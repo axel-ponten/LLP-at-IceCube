@@ -23,20 +23,21 @@
 		"stopping_decay" : true,
 		"weak_enable" : true,
 		"mupair_enable": true,
-		"llp_enable": false,
+		"llp_enable": true,
 
 		"brems_multiplier" : 1,
 		"photo_multiplier" : 1,
 		"ioniz_multiplier" : 1,
 		"epair_multiplier" : 1,
 		"weak_multiplier"  : 1,
-		"llp_multiplier"   : 1E-28,
-		"llp_mass"         : 150.0,
-		"llp_epsilon"      : 1,
+		"llp_multiplier"   : 2e9,
+		"llp_mass"         : 130,
+		"llp_epsilon"      : 5e-6,
 
 		"epair" : "EpairKelnerKokoulinPetrukhin",
 		"brems" : "BremsKelnerKokoulinPetrukhin",
 		"photo" : "PhotoAbramowiczLevinLevyMaor97",
+        "llp"   : "DarkLeptonicScalar",
 		"lpm" : true,
 
 		"cuts_infront":

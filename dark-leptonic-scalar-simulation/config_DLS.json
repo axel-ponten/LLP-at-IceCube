@@ -31,7 +31,7 @@
 		"epair_multiplier" : 1,
 		"weak_multiplier"  : 1,
 		"llp_multiplier"   : 1E-28,
-		"llp_mass"         : 0.5,
+		"llp_mass"         : 150.0,
 		"llp_epsilon"      : 1,
 
 		"epair" : "EpairKelnerKokoulinPetrukhin",
