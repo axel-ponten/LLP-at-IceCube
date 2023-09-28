@@ -1,0 +1,32 @@
+executable = job.sh
+
+arguments = /data/user/axelpo/LLP-at-IceCube/dark-leptonic-scalar-simulation/SimulateLLP.py \
+ --nevents 100 \
+ --seed $(ClusterId) \
+ --nproc 50 \
+ --procnum $(ProcId) \
+ --RunID $$([776*100000+$(ProcId)]) \
+ --UseGPUs \
+# --no-natural-rate \
+ --SaveAllEvents \
+ --mass 130 \
+ --eps 5e-6 \
+ --bias 1 \
+ --LLP-model DarkLeptonicScalar \
+ --parentdirectory /data/user/axelpo/LLP-data/NO_LLP.DarkLeptonicScalar.mass-130.eps-5e-6.nevents-$$([100*50])_naturalrate_230919.$(ClusterId)/ \
+ --dirname LLPSimulation.$(ClusterId).$(ProcId) \
+
+log = /scratch/axelpo/job.log.$(ClusterId).$(ProcId)
+output = /data/user/axelpo/LLP-at-IceCube/dark-leptonic-scalar-simulation/logs/job.out.$(ClusterId).$(ProcId)
+error = /data/user/axelpo/LLP-at-IceCube/dark-leptonic-scalar-simulation/logs/job.err.$(ClusterId).$(ProcId)
+notification = never
+
++FileSystemDomain = "foo"
+transfer_input_files = /data/user/axelpo/LLP-at-IceCube/dark-leptonic-scalar-simulation/SimulateLLP.py
+
+request_cpus = 5
+request_memory = 8GB
+request_disk = 2GB
+request_gpus = 1
+
+queue 50

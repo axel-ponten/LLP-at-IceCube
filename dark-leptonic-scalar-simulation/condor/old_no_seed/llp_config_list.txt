@@ -1,0 +1,1 @@
+10000,130,1e-6,2e9,DarkLeptonicScalar

@@ -1,0 +1,18 @@
+executable = job.sh
+arguments = physics.py $(ProcId)
+
+log = /scratch/axelpo/job.log
+output = /scratch/axelpo/job.out.$(ProcId)
+error = /scratch/axelpo/job.err.$(ProcId)
+notification = never
+
++FileSystemDomain = "foo"
+transfer_input_files = physics.py
+
+request_cpus = 1
+request_memory = 1GB
+request_disk = 1GB
+#request_gpus = 1+
+
+queue 10
+
