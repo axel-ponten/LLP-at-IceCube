@@ -15,7 +15,7 @@ arguments = /data/user/axelpo/LLP-at-IceCube/dark-leptonic-scalar-simulation/Sim
  --eps <eps> \
  --bias <bias> \
  --LLP-model <model> \
- --parentdirectory /data/user/axelpo/LLP-data/<model>.mass-<mass>.eps-<eps>.nevents-$$([<nevents>*<njobs>])_macrogaps_<currentdate>.$(ClusterId)/ \
+ --parentdirectory /data/user/axelpo/LLP-data/<model>.mass-<mass>.eps-<eps>.nevents-$$([<nevents>*<njobs>])_macrogaps_<minlength>_<currentdate>.$(ClusterId)/ \
  --dirname LLPSimulation.$(ClusterId).$(ProcId) \
 
 log = /scratch/axelpo/job.log.$(ClusterId).$(ProcId)

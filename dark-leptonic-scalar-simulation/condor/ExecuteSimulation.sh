@@ -7,8 +7,8 @@ export MASS=130
 export EPS=5e-6
 export BIAS=3e9
 export MODEL=DarkLeptonicScalar
-export MINLENGTH=100
-export DATASETID=778
+export MINLENGTH=300
+export DATASETID=7792
 
 export CURRENTDATE=`date +%y%m%d`
 
