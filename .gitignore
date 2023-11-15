@@ -4,6 +4,7 @@
 *.gz
 *.i3
 *.zst
+dark-leptonic-scalar-simulation/condor/condor_exe_dirs/
 
 # PYTHON DEFAULT GITIGNORE
 # Byte-compiled / optimized / DLL files
