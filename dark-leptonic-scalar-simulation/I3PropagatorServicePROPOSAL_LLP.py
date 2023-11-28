@@ -22,12 +22,12 @@ class I3PropagatorServicePROPOSAL_LLP(icecube._sim_services.I3PropagatorService)
         """ Propagate the lepton. If only one LLP per event, use SM propagators after LLP production. """
         if self.only_one_LLP:
             if self.llp_counter == 0:
-                daughters = self.llp_propagator.Propagate(p)
+                daughters = self.llp_propagator.Propagate(p, frame)
             else:
-                daughters = self.sm_propagator.Propagate(p)
+                daughters = self.sm_propagator.Propagate(p, frame)
         else:
             # always use LLP propagator
-            daughters = self.llp_propagator.Propagate(p)
+            daughters = self.llp_propagator.Propagate(p, frame)
             
         self.check_for_LLP(daughters)
         return daughters
