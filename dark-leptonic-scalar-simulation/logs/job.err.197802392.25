@@ -1,0 +1,58 @@
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<char, std::allocator<char> > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<OMKey, std::allocator<OMKey> > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<short, std::allocator<short> > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<int, std::allocator<int> > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<unsigned int, std::allocator<unsigned int> > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<unsigned long, std::allocator<unsigned long> > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<double, std::allocator<double> > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for CorsikaModelEnums::Status already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for I3PrimaryInjectorInfo already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for boost::shared_ptr<I3PrimaryInjectorInfo> already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for I3CorsikaInfo already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for boost::shared_ptr<I3CorsikaInfo> already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for I3TopInjectorInfo already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for boost::shared_ptr<I3TopInjectorInfo> already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for CorsikaModelEnums::LEHadronModel already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for CorsikaModelEnums::HEHadronModel already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for (anonymous namespace)::dummy already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::map<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::less<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > > already registered; second conversion method ignored.
+usage: SimulateLLP.py [-h] [--summaryfile SUMMARYFILE] [--NoHistogram]
+                      [--HistogramFilename HISTOGRAMFILENAME] [--nproc NPROC]
+                      [--procnum PROCNUM] [--seed SEED] [--UseGSLRNG]
+                      [--IceModelLocation ICEMODELLOCATION]
+                      [--IceModel ICEMODEL]
+                      [--holeiceparametrization HOLEICEPARAMETRIZATION]
+                      [--oversize OVERSIZE] [--efficiency EFFICIENCY]
+                      [--no-PropagateMuons]
+                      [--PhotonSeriesName PHOTONSERIESNAME] [--GPU GPU]
+                      [--UseGPUs] [--outputfile OUTPUTFILE]
+                      [--parentdirectory PARENTDIRECTORY] [--dirname DIRNAME]
+                      [--model MODEL] [--gamma GAMMA] [--offset OFFSET]
+                      [--emin EMIN] [--emax EMAX] [--length LENGTH]
+                      [--radius RADIUS] [--x X] [--y Y] [--z Z]
+                      [--length-dc LENGTH_DC] [--radius-dc RADIUS_DC]
+                      [--x-dc X_DC] [--y-dc Y_DC] [--z-dc Z_DC] [--deepcore]
+                      [--no-natural-rate]
+                      [--UseOnlyDeviceNumber USEONLYDEVICENUMBER]
+                      [--RawPhotonSeriesName RAWPHOTONSERIESNAME]
+                      [--no-KeepMCTree] --nevents NEVENTS [--gcdfile GCDFILE]
+                      [--PROPOSAL-config-SM CONFIG_SM]
+                      [--PROPOSAL-config-LLP CONFIG_LLP] [--OnlyOneLLP]
+                      [--SaveAllEvents] [--EitherDecayOrProd]
+                      [--min_LLP_length MIN_LLP_LENGTH]
+                      [--LLP-model LLP-MODEL] [--mass MASS] [--eps EPS]
+                      [--bias BIAS] [--use-clsim] [--no-RunMPHitFilter]
+                      [--gpulib GPULIB] [--volumecyl]
+                      [--MCTreeName MCTREENAME] [--KeepEmptyEvents]
+                      [--TempDir TEMPDIR] [--MCType MCTYPE] [--UseLinearTree]
+                      [--MCPrescale MCPRESCALE] [--IceTop] [--noInIce]
+                      [--Genie] [--no-FilterTrigger] [--no-Trigger] [--LowMem]
+                      [--no-BeaconLaunches]
+                      [--TimeShiftSkipKeys TIMESHIFTSKIPKEYS]
+                      [--SampleEfficiency SAMPLEEFFICIENCY]
+                      [--GeneratedEfficiency GENERATEDEFFICIENCY]
+                      [--RunID RUNID] [--MCPESeriesName MCPESERIESNAME]
+                      [--DetectorName DETECTORNAME] [--SkipKeys SKIPKEYS]
+SimulateLLP.py: error: argument --RunID: invalid int value: '7.761002500000000E+07'

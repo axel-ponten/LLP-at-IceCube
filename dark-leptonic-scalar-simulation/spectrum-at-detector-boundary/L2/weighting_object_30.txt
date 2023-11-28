@@ -1,0 +1,26 @@
+< GenerationSurface
+           PPlus : N=25960050.0 PowerLaw(-2.0 ,600.0, 100000000.0) NaturalRateCylinder(1200.0, 600.0, 0.00017457020856805793, 1.0)
+      He4Nucleus : N=3245010.0 PowerLaw(-2.0 ,2400.0, 400000000.0) NaturalRateCylinder(1200.0, 600.0, 0.00017457020856805793, 1.0)
+      N14Nucleus : N=556290.0 PowerLaw(-2.0 ,8400.0, 1400000000.0) NaturalRateCylinder(1200.0, 600.0, 0.00017457020856805793, 1.0)
+     Al27Nucleus : N=192300.0 PowerLaw(-2.0 ,16200.0, 2700000000.0) NaturalRateCylinder(1200.0, 600.0, 0.00017457020856805793, 1.0)
+     Fe56Nucleus : N=46350.0 PowerLaw(-2.0 ,33600.0, 5600000000.0) NaturalRateCylinder(1200.0, 600.0, 0.00017457020856805793, 1.0)
+>
+Weight Columns   : cos_zen, energy, event_weight, pdgid
+Number of Events :    55415
+Effective Area   :   731539 m²
+Using flux model : GaisserH4a
+Event Rate       :  323.554 Hz
+Livetime         :  70.7028 s
+< GenerationSurface
+           PPlus : N=25960050.0 PowerLaw(-2.0 ,600.0, 100000000.0) NaturalRateCylinder(1200.0, 600.0, 0.00017457020856805793, 1.0)
+      He4Nucleus : N=3245010.0 PowerLaw(-2.0 ,2400.0, 400000000.0) NaturalRateCylinder(1200.0, 600.0, 0.00017457020856805793, 1.0)
+      N14Nucleus : N=556290.0 PowerLaw(-2.0 ,8400.0, 1400000000.0) NaturalRateCylinder(1200.0, 600.0, 0.00017457020856805793, 1.0)
+     Al27Nucleus : N=192300.0 PowerLaw(-2.0 ,16200.0, 2700000000.0) NaturalRateCylinder(1200.0, 600.0, 0.00017457020856805793, 1.0)
+     Fe56Nucleus : N=46350.0 PowerLaw(-2.0 ,33600.0, 5600000000.0) NaturalRateCylinder(1200.0, 600.0, 0.00017457020856805793, 1.0)
+>
+Weight Columns   : cos_zen, energy, event_weight, pdgid
+Number of Events :    55415
+Effective Area   :   731539 m²
+Using flux model : GaisserH4a
+Event Rate       :  323.554 Hz
+Livetime         :  70.7028 s

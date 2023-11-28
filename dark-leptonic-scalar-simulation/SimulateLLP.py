@@ -237,7 +237,7 @@ def add_args(parser):
                         default=False, action="store_true", required=False,
                         help='Use I3LinearizedMCTree for serialization')
     parser.add_argument("--MCPrescale", dest="mcprescale",
-                        default=0, type=int, required=False,
+                        default=1, type=int, required=False,
                         help='Prescale for keeping additional Monte Carlo info in the frame')
     parser.add_argument("--IceTop", dest="icetop",
                         default=False, action="store_true", required=False,
@@ -507,6 +507,7 @@ params['histogramfilename'] = directory_path + params['histogramfilename']
     
 # suppress warnings from PROPOSAL LLP integration
 icetray.set_log_level(icetray.I3LogLevel.LOG_FATAL)
+#icetray.set_log_level_for_unit("I3PropagatorModule", icetray.I3LogLevel.LOG_FATAL) # didnt work
 
 # Execute Tray
 summary = RunI3Tray(params, configure_tray, "MuonGunGenerator",
