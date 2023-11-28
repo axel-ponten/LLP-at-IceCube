@@ -1,0 +1,242 @@
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<char, std::allocator<char> > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<OMKey, std::allocator<OMKey> > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<short, std::allocator<short> > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<int, std::allocator<int> > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<unsigned int, std::allocator<unsigned int> > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<unsigned long, std::allocator<unsigned long> > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::vector<double, std::allocator<double> > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for CorsikaModelEnums::Status already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for I3PrimaryInjectorInfo already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for boost::shared_ptr<I3PrimaryInjectorInfo> already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for I3CorsikaInfo already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for boost::shared_ptr<I3CorsikaInfo> already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for I3TopInjectorInfo already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for boost::shared_ptr<I3TopInjectorInfo> already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for CorsikaModelEnums::LEHadronModel already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for CorsikaModelEnums::HEHadronModel already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for (anonymous namespace)::dummy already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > already registered; second conversion method ignored.
+<frozen importlib._bootstrap>:241: RuntimeWarning: to-Python converter for std::map<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::less<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > > already registered; second conversion method ignored.
+INFO:MuonGunGenerator:LLP-model:DarkLeptonicScalar
+INFO:MuonGunGenerator:OnlySaveLLPEvents:True
+INFO:MuonGunGenerator:beaconlaunches:True
+INFO:MuonGunGenerator:bias:3000000000.0
+INFO:MuonGunGenerator:both_prod_decay_inside:True
+INFO:MuonGunGenerator:config_LLP:/data/user/axelpo/LLP-data/DarkLeptonicScalar.mass-130.eps-5e-6.nevents-10000_macrogaps_100_231011.197900741/LLPSimulation.197900741.0_naturalrate_fullycontained_macrogaps/config_LLP.json
+INFO:MuonGunGenerator:config_SM:/data/user/axelpo/LLP-at-IceCube/dark-leptonic-scalar-simulation/resources/config_SM.json
+INFO:MuonGunGenerator:deepcore:False
+INFO:MuonGunGenerator:detectorname:IC86
+INFO:MuonGunGenerator:dirname:LLPSimulation.197900741.0
+INFO:MuonGunGenerator:efficiency:1.0
+INFO:MuonGunGenerator:emax:10000000.0
+INFO:MuonGunGenerator:emin:10000.0
+INFO:MuonGunGenerator:enablehistogram:True
+INFO:MuonGunGenerator:eps:5e-06
+INFO:MuonGunGenerator:filtertrigger:True
+INFO:MuonGunGenerator:gamma:2.0
+INFO:MuonGunGenerator:gcdfile:/data/user/axelpo/LLP-at-IceCube/dark-leptonic-scalar-simulation/resources/GeoCalibDetectorStatus_2021.Run135903.T00S1.Pass2_V1b_Snow211115.i3.gz
+INFO:MuonGunGenerator:generatedefficiency:0.0
+INFO:MuonGunGenerator:genie:False
+INFO:MuonGunGenerator:gpu:None
+INFO:MuonGunGenerator:gpulib:opencl
+INFO:MuonGunGenerator:histogramfilename:/data/user/axelpo/LLP-data/DarkLeptonicScalar.mass-130.eps-5e-6.nevents-10000_macrogaps_100_231011.197900741/LLPSimulation.197900741.0_naturalrate_fullycontained_macrogaps/histogram.pkl
+INFO:MuonGunGenerator:holeiceparametrization:/data/user/axelpo/i3/icetray-axel/src/ice-models/resources/models/ANGSENS/angsens/as.h2-50cm
+INFO:MuonGunGenerator:icemodel:spice_3.2
+INFO:MuonGunGenerator:icemodellocation:/data/user/axelpo/i3/icetray-axel/build/ice-models/resources/models/ICEMODEL
+INFO:MuonGunGenerator:icetop:False
+INFO:MuonGunGenerator:keepemptyevents:False
+INFO:MuonGunGenerator:keepmctree:True
+INFO:MuonGunGenerator:length:1600.0
+INFO:MuonGunGenerator:length_dc:500.0
+INFO:MuonGunGenerator:lowmem:False
+INFO:MuonGunGenerator:mass:130.0
+INFO:MuonGunGenerator:mcpeseriesname:I3MCPESeriesMap
+INFO:MuonGunGenerator:mcprescale:1
+INFO:MuonGunGenerator:mctreename:I3MCTree
+INFO:MuonGunGenerator:mctype:corsika_weighted
+INFO:MuonGunGenerator:min_LLP_length:100.0
+INFO:MuonGunGenerator:model:Hoerandel5_atmod12_SIBYLL
+INFO:MuonGunGenerator:natural_rate:True
+INFO:MuonGunGenerator:nevents:100
+INFO:MuonGunGenerator:notinice:False
+INFO:MuonGunGenerator:nproc:100
+INFO:MuonGunGenerator:offset:700.0
+INFO:MuonGunGenerator:only_one_LLP:False
+INFO:MuonGunGenerator:outputfile:/data/user/axelpo/LLP-data/DarkLeptonicScalar.mass-130.eps-5e-6.nevents-10000_macrogaps_100_231011.197900741/LLPSimulation.197900741.0_naturalrate_fullycontained_macrogaps/LLPSimulation.DarkLeptonicScalar.mass-130.0.eps-5e-06.bias-3000000000.0.nevents-100.i3.gz
+INFO:MuonGunGenerator:oversize:1
+INFO:MuonGunGenerator:parentdirectory:/data/user/axelpo/LLP-data/DarkLeptonicScalar.mass-130.eps-5e-6.nevents-10000_macrogaps_100_231011.197900741/
+INFO:MuonGunGenerator:photonseriesname:I3MCPESeriesMap
+INFO:MuonGunGenerator:procnum:0
+INFO:MuonGunGenerator:propagatemuons:True
+INFO:MuonGunGenerator:radius:800.0
+INFO:MuonGunGenerator:radius_dc:150.0
+INFO:MuonGunGenerator:rawphotonseriesname:None
+INFO:MuonGunGenerator:runid:778100000
+INFO:MuonGunGenerator:runmphitfilter:True
+INFO:MuonGunGenerator:sampleefficiency:0.0
+INFO:MuonGunGenerator:seed:197900741
+INFO:MuonGunGenerator:skipkeys:[]
+INFO:MuonGunGenerator:summaryfile:/data/user/axelpo/LLP-data/DarkLeptonicScalar.mass-130.eps-5e-6.nevents-10000_macrogaps_100_231011.197900741/LLPSimulation.197900741.0_naturalrate_fullycontained_macrogaps/summary.json
+INFO:MuonGunGenerator:tempdir:None
+INFO:MuonGunGenerator:timeshiftskipkeys:[]
+INFO:MuonGunGenerator:trigger:True
+INFO:MuonGunGenerator:use-clsim:False
+INFO:MuonGunGenerator:usegpus:True
+INFO:MuonGunGenerator:usegslrng:False
+INFO:MuonGunGenerator:uselineartree:False
+INFO:MuonGunGenerator:useonlydevicenumber:0
+INFO:MuonGunGenerator:volumecyl:False
+INFO:MuonGunGenerator:x:0.0
+INFO:MuonGunGenerator:x_dc:46.3
+INFO:MuonGunGenerator:y:0.0
+INFO:MuonGunGenerator:y_dc:-34.9
+INFO:MuonGunGenerator:z:0.0
+INFO:MuonGunGenerator:z_dc:-300.0
+INFO:MuonGunGenerator:Configuring IceProd: MuonGunGenerator
+INFO:MuonGunGenerator:Executing MuonGunGenerator
+Configuring ppcdir from "/data/user/axelpo/i3/icetray-axel/src/ppc/resources/ice/"
+Configuring nextgen sensors in "/data/user/axelpo/i3/icetray-axel/src/ppc/resources/ice/"
+Configuring icemodel in "/data/user/axelpo/i3/icetray-axel/build/ice-models/resources/models/ICEMODEL/spice_3.2/"
+Configuring tiltmodel in "/data/user/axelpo/i3/icetray-axel/build/ice-models/resources/models/ICEMODEL/spice_3.2/"
+Configuring holeice from "/data/user/axelpo/i3/icetray-axel/src/ice-models/resources/models/ANGSENS/angsens/as.h2-50cm"
+Using oversize as set with OVSZ=1
+Configured: xR=1 eff=1.004 sf=0.35 g=0.9
+Ice anisotropy is k(130)=0.899425,1.05443,1.05443
+Loaded 12 angsens coefficients
+Loaded 131072 random multipliers
+Warning: overwriting existing geometry!
+Using fixed positions of hole ice columns from str-f2k!
+Warning: overwriting existing RDE table!
+Warning: overwriting existing HV table!
+Loaded 5049 DOM orientations
+Loaded 5083 cable positions
+Loaded 5160 RDE coefficients
+ Found 4761 OMs of type -1,0
+ Found 399 OMs of type -1,1
+Loaded 5160 DOMs (21x19)
+Loaded 6x125 dust layer points
+Ice layer thickness: UNIFORM
+Loaded 42 wavelenth points
+Loaded 42 RDE coefficients
+Calculated value of ppm=3080.94
+Loaded 171 ice layers
+
+Running only on GPUs!
+Found 2 platforms:
+platform 0: NVIDIA CUDA OpenCL 3.0 CUDA 12.2.138 device count: 1
+  device 0: cu=84 gr=1024 1740 MHz 47622258688 bytes cm=65536 lm=49152 ecc=1
+platform 1: AMD Accelerated Parallel Processing OpenCL 1.2 AMD-APP (1214.3) device count: 0
+
+Device vendor ID=0x10de (NVIDIA Corporation) mult=1
+1 warning generated.
+BUILD LOG:
+
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function 'propagate' for 'sm_86'
+ptxas info    : Function properties for propagate
+ptxas         .     40 bytes stack frame, 56 bytes spill stores, 68 bytes spill loads
+ptxas info    : Used 64 registers, 12444 bytes smem, 408 bytes cmem[0], 16 bytes cmem[2]
+Running on 84 MPs x 256 threads; Kernel uses: l=12444
+Running on 84 MPs x 1024 threads; (corrected/verified)
+HQUO(photons/max number of hits)=1
+Total GPU memory usage: 7092879000  const: 103200  (npho=1024)
+Relative GPU loadings: 1
+INFO:MuonGunGenerator:Stats produced by MuonGunGenerator:
+INFO:MuonGunGenerator:-----------------------------------
+INFO:MuonGunGenerator:IC86 Triggered Events,82
+INFO:MuonGunGenerator:<lambda>_0000:usr,0.24721900000016148
+INFO:MuonGunGenerator:<lambda>_0000:sys,0.0021040000000000056
+INFO:MuonGunGenerator:<lambda>_0000:ncall,0
+INFO:MuonGunGenerator:<lambda>_0001:usr,0.7735570000000686
+INFO:MuonGunGenerator:<lambda>_0001:sys,0.0035160000000000018
+INFO:MuonGunGenerator:<lambda>_0001:ncall,0
+INFO:MuonGunGenerator:AddComponentWaveforms:usr,0.0006000000000000001
+INFO:MuonGunGenerator:AddComponentWaveforms:sys,7.400000000000001e-05
+INFO:MuonGunGenerator:AddComponentWaveforms:ncall,82
+INFO:MuonGunGenerator:AddTriggers_0000:usr,0.0010419999999999989
+INFO:MuonGunGenerator:AddTriggers_0000:sys,0.0010369999999999997
+INFO:MuonGunGenerator:AddTriggers_0000:ncall,98
+INFO:MuonGunGenerator:DetectorResponse_dommb:usr,13.945778999999998
+INFO:MuonGunGenerator:DetectorResponse_dommb:sys,0.18693399999999988
+INFO:MuonGunGenerator:DetectorResponse_dommb:ncall,98
+INFO:MuonGunGenerator:DetectorResponse_pmt:usr,0.036146
+INFO:MuonGunGenerator:DetectorResponse_pmt:sys,0.000796
+INFO:MuonGunGenerator:DetectorResponse_pmt:ncall,98
+INFO:MuonGunGenerator:DetectorSim_cleanup:usr,0.0004989999999999999
+INFO:MuonGunGenerator:DetectorSim_cleanup:sys,4.4e-05
+INFO:MuonGunGenerator:DetectorSim_cleanup:ncall,0
+INFO:MuonGunGenerator:DetectorSim_triggersim_global_trig:usr,0.005647000000000001
+INFO:MuonGunGenerator:DetectorSim_triggersim_global_trig:sys,0.00010199999999999999
+INFO:MuonGunGenerator:DetectorSim_triggersim_global_trig:ncall,98
+INFO:MuonGunGenerator:I3Pruner_0000:usr,0.018189
+INFO:MuonGunGenerator:I3Pruner_0000:sys,0.00038
+INFO:MuonGunGenerator:I3Pruner_0000:ncall,82
+INFO:MuonGunGenerator:I3TimeShifter_0000:usr,0.027172
+INFO:MuonGunGenerator:I3TimeShifter_0000:sys,0.0031100000000000004
+INFO:MuonGunGenerator:I3TimeShifter_0000:ncall,82
+INFO:MuonGunGenerator:I3TriggerSimModule_0000:usr,0.019784999999999997
+INFO:MuonGunGenerator:I3TriggerSimModule_0000:sys,0.00034700000000000003
+INFO:MuonGunGenerator:I3TriggerSimModule_0000:ncall,98
+INFO:MuonGunGenerator:InjectDefaultDOMSets_0000:usr,0.015882000000000007
+INFO:MuonGunGenerator:InjectDefaultDOMSets_0000:sys,0.00096
+INFO:MuonGunGenerator:InjectDefaultDOMSets_0000:ncall,98
+INFO:MuonGunGenerator:LLPEventCounter_0000:usr,0.3244720000000239
+INFO:MuonGunGenerator:LLPEventCounter_0000:sys,0.001846999999999999
+INFO:MuonGunGenerator:LLPEventCounter_0000:ncall,55086
+INFO:MuonGunGenerator:ProductionHistogramModule_0000:usr,0.4275679999999999
+INFO:MuonGunGenerator:ProductionHistogramModule_0000:sys,0.005921
+INFO:MuonGunGenerator:ProductionHistogramModule_0000:ncall,82
+INFO:MuonGunGenerator:RenamePESeriesMap:usr,0.0006669999999999995
+INFO:MuonGunGenerator:RenamePESeriesMap:sys,8e-06
+INFO:MuonGunGenerator:RenamePESeriesMap:ncall,0
+INFO:MuonGunGenerator:Rename_0000:usr,0.002407
+INFO:MuonGunGenerator:Rename_0000:sys,2e-06
+INFO:MuonGunGenerator:Rename_0000:ncall,0
+INFO:MuonGunGenerator:TheSource:usr,0.3689699999998061
+INFO:MuonGunGenerator:TheSource:sys,0.014813999999999895
+INFO:MuonGunGenerator:TheSource:ncall,0
+INFO:MuonGunGenerator:add_empty_pes_0000:usr,0.002106
+INFO:MuonGunGenerator:add_empty_pes_0000:sys,4e-06
+INFO:MuonGunGenerator:add_empty_pes_0000:ncall,0
+INFO:MuonGunGenerator:count_triggers:usr,0.0007070000000000001
+INFO:MuonGunGenerator:count_triggers:sys,6.3e-05
+INFO:MuonGunGenerator:count_triggers:ncall,0
+INFO:MuonGunGenerator:effective_area_0000:usr,1.5343080000002869
+INFO:MuonGunGenerator:effective_area_0000:sys,0.010557999999999977
+INFO:MuonGunGenerator:effective_area_0000:ncall,0
+INFO:MuonGunGenerator:hitfilter:usr,0.009008999999999998
+INFO:MuonGunGenerator:hitfilter:sys,0.00018199999999999995
+INFO:MuonGunGenerator:hitfilter:ncall,98
+INFO:MuonGunGenerator:muongun:usr,24.51721100000009
+INFO:MuonGunGenerator:muongun:sys,0.13221300000000075
+INFO:MuonGunGenerator:muongun:ncall,55086
+INFO:MuonGunGenerator:muongun_prepropMCTree:usr,0.15615600000010935
+INFO:MuonGunGenerator:muongun_prepropMCTree:sys,0.0012630000000000009
+INFO:MuonGunGenerator:muongun_prepropMCTree:ncall,0
+INFO:MuonGunGenerator:ppc:usr,1.7646230000000003
+INFO:MuonGunGenerator:ppc:sys,0.3075219999999999
+INFO:MuonGunGenerator:ppc:ncall,100
+INFO:MuonGunGenerator:propagator_add_empty_tracklist:usr,0.8541180000001386
+INFO:MuonGunGenerator:propagator_add_empty_tracklist:sys,0.004203000000000007
+INFO:MuonGunGenerator:propagator_add_empty_tracklist:ncall,0
+INFO:MuonGunGenerator:propagator_propagator:usr,326.97339399999447
+INFO:MuonGunGenerator:propagator_propagator:sys,0.4698369999999983
+INFO:MuonGunGenerator:propagator_propagator:ncall,55086
+INFO:MuonGunGenerator:split:usr,0.109442
+INFO:MuonGunGenerator:split:sys,0.0010249999999999994
+INFO:MuonGunGenerator:split:ncall,0
+INFO:MuonGunGenerator:vuvuzela_DetectorSim_vuvuzela:usr,0.3156359999999999
+INFO:MuonGunGenerator:vuvuzela_DetectorSim_vuvuzela:sys,0.027768000000000004
+INFO:MuonGunGenerator:vuvuzela_DetectorSim_vuvuzela:ncall,98
+INFO:MuonGunGenerator:weight:usr,0.3167990000000448
+INFO:MuonGunGenerator:weight:sys,0.002087000000000002
+INFO:MuonGunGenerator:weight:ncall,55086
+INFO:MuonGunGenerator:write_simulation_information_0000:usr,0.11173600000006734
+INFO:MuonGunGenerator:write_simulation_information_0000:sys,0.001073000000000004
+INFO:MuonGunGenerator:write_simulation_information_0000:ncall,0
+INFO:MuonGunGenerator:writer:usr,0.2579450000000001
+INFO:MuonGunGenerator:writer:sys,0.006002
+INFO:MuonGunGenerator:writer:ncall,0
+
+Device time: 3028.0 [ms]
