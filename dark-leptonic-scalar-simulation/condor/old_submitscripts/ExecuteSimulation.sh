@@ -1,19 +1,14 @@
 export JOBFILE=job.sh
 
 # simulation parameters
-export NJOBS=100
+export NJOBS=50
 export NEVENTS=100
-export MASS=999
-export EPS=1
-export BIAS=1
+export MASS=130
+export EPS=5e-6
+export BIAS=3e9
 export MODEL=DarkLeptonicScalar
-export MINLENGTH=0
-export DATASETID=1112
-export FLUXMODEL=Hoerandel5_atmod12_SIBYLL
-export FLUXGAMMA=2
-export FLUXOFFSET=700
-export FLUXEMIN=1e4
-export FLUXEMAX=1e7
+export MINLENGTH=300
+export DATASETID=7792
 
 export CURRENTDATE=`date +%y%m%d`
 
@@ -23,7 +18,7 @@ mkdir $EXEDIR
 cp $JOBFILE $EXEDIR
 
 #skript used for condor
-export CONDORSCRIPT=$(pwd)"/condor_submit_template/FullSimulationLLP_template_v2.sub"
+export CONDORSCRIPT=$(pwd)"/condor_submit_template/FullSimulationLLP_template.sub"
 
 #transform condor
 sed -e 's/<njobs>/'$NJOBS'/g' \
@@ -35,11 +30,6 @@ sed -e 's/<njobs>/'$NJOBS'/g' \
     -e 's/<datasetid>/'$DATASETID'/g' \
     -e 's/<currentdate>/'$CURRENTDATE'/g' \
     -e 's/<minlength>/'$MINLENGTH'/g' \
-    -e 's/<fluxmodel>/'$FLUXMODEL'/g' \
-    -e 's/<fluxgamma>/'$FLUXGAMMA'/g' \
-    -e 's/<fluxoffset>/'$FLUXOFFSET'/g' \
-    -e 's/<fluxemin>/'$FLUXEMIN'/g' \
-    -e 's/<fluxemax>/'$FLUXEMAX'/g' \
     $CONDORSCRIPT > "$EXEDIR/condor.submit";
 
 
