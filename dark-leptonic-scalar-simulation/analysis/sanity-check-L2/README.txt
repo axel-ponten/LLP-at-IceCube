@@ -1,5 +1,5 @@
-Making sure that processing from trigger to level 2 works like it should. Will some events who were NOT passing L2 pass if I run it again?
+Since we saw L2 filtering having some randomness in it we are making sure that processing from trigger to level 2 works like it should.
 
-Also check that event rates before and after are reasonable.
+Use standard IceCube environment and scripts directly from icetray src folder for this.
 
-Use standard IceCube environment and scripts directly from src folder for this.
+Conclusion: when removing events that ONLY pass minbias filter, we don't get the randomness anymore.
