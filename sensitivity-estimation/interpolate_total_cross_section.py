@@ -21,7 +21,7 @@ import pandas as pd
 ###########################
 def plot_interpolation(df, interpfunc, mass):
     E0array = np.logspace(1,5,1000)
-    totcsarray = [totcsInterpolation(energy) for energy in E0array]
+    totcsarray = [interpfunc(energy) for energy in E0array]
     # plot
     plt.figure()
     plt.plot(df["E0"],df["totcs"],'k+', label="table entries")
