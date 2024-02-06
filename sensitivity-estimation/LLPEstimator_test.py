@@ -1,14 +1,12 @@
 from LLPEstimator import *
+from estimation_utilities import *
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-
-def initialize_cross_section_interpolation(path_to_table: str):
-    # read in from tables
-    df = pd.read_csv(path_to_table, names=["E0", "totcs"])
-    # create interpolation
-    return interp1d(df["E0"], df["totcs"],kind="quadratic")
+import timeit
+import cProfile
+import pstats
 
 def plot_interpolation(df, interpfunc, mass, eps=1):
     E0array = np.logspace(1,5,1000)
@@ -28,6 +26,7 @@ def plot_interpolation(df, interpfunc, mass, eps=1):
     plt.show()
 
 ############## TEST LLPModel ##############
+print("Testing LLPModel")
 # parameters for test
 name = "DarkLeptonicScalar"
 mass = 0.115
@@ -38,8 +37,7 @@ print("Parameters:", name, mass, eps, tau, path_to_table)
 
 # read in table
 df = pd.read_csv(path_to_table, names=["E0", "totcs"])
-unscaled_func = initialize_cross_section_interpolation(path_to_table)
-func_to_xsec = lambda energy: eps**2 * unscaled_func(energy)
+func_to_xsec = interp1d(df["E0"], eps**2*df["totcs"],kind="quadratic")
 
 # create LLPModel
 DLS = LLPModel(name, mass, eps, tau, func_to_xsec)
@@ -51,4 +49,50 @@ print("at 100 GeV", DLS.get_lifetime(100/mass))
 print("at 1000 GeV", DLS.get_lifetime(1000/mass))
 # plot
 plot_interpolation(df, DLS.func_tot_xsec, mass, eps)
+
+# test decay factor
+print("test decay factor at E = 500 GeV for:")
+print("l1=0, l2=999999999", DLS.decay_factor(0,999999999,500))
+print("l1=50, l2=800", DLS.decay_factor(50,800,500))
+print("l1=50, l2=75", DLS.decay_factor(50,75,500))
+print("l1=50, l2=10", DLS.decay_factor(50,10,500))
+print("l1=50, l2=-10", DLS.decay_factor(50,-10,500))
 ############## END ##############
+
+############## TEST LLPEstimator ##############
+print("\n\nTesting LLPEstimator")
+
+masses      = [0.107, 0.110, 0.115, 0.13]
+epsilons    = [5e-6, 5e-6, 5e-6, 5e-6]
+names       = ["DarkLeptonicScalar" for m in masses]
+table_paths = generate_DLS_WW_oxygen_paths(masses)
+print("paths", table_paths)
+
+models = generate_DLSModels(masses, epsilons, names, table_paths)
+min_gap = 50.0
+
+my_LLPEstimator = LLPEstimator(models, min_gap)
+print("Models used:")
+[m.print_summary() for m in my_LLPEstimator.get_LLPModels()]
+print("\n\n")
+
+steps = 100
+length_list = np.linspace(0,800,steps)
+energy_list = np.linspace(1000,700,steps)
+print("Lengths and energies")
+print(length_list)
+print(energy_list)
+print("Probabilites")
+probabilities = my_LLPEstimator.calc_LLP_probability(length_list, energy_list)
+print(probabilities)
+
+# cProfile for the calculations
+print("####### cProfile for probability calculation #######")
+with cProfile.Profile() as profile:
+    for i in range(1000):
+        my_LLPEstimator.calc_LLP_probability(length_list, energy_list)
+profile_result = pstats.Stats(profile)
+profile_result.sort_stats(pstats.SortKey.TIME)
+profile_result.print_stats()
+
+
