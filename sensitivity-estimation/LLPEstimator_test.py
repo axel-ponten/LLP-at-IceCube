@@ -73,7 +73,7 @@ models = generate_DLSModels(masses, epsilons, names, table_paths)
 min_gap = 50.0
 # test ID's
 print("\n\n\nID's for created models")
-uniqueID_list = [m.get_uniqueID() for m in models]
+uniqueID_list = [m.uniqueID() for m in models]
 print(uniqueID_list)
 print("\n creating new models from the ID's")
 model_from_ID_list = [LLPModel.from_uniqueID(ID) for ID in uniqueID_list]
