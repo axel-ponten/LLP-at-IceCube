@@ -69,6 +69,7 @@ class LLPProbabilityCalculator(icetray.I3Module):
             probabilities = np.zeros(len(self.LLPEstimator.get_LLPModels())) # if muon bundle, return zero prob
             
         # write probabilities
+        # @TODO: use I3Map<string, double> for this, and use unique identifier string
         frame["LLPProbabilities"] = probabilities
 
 

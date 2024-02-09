@@ -13,6 +13,7 @@ class LLPModel():
         self.eps           = eps           # coupling to SM
         self.tau           = tau           # lifetime in s
         self.func_tot_xsec = func_tot_xsec # should return totcs in cm^2, perhaps a interpolation function from a table
+        self.uniqueID      = None          # @TODO: fix this
         
     def calc_tot_xsec(self, energy: float) -> float:
         """
@@ -49,6 +50,25 @@ class LLPModel():
                 prob = 0.0
         return prob
 
+    def get_uniqueID(self) -> str:
+        # @TODO: clever way to compute ID for a model. should contain mass, epsilon, name, lifetime info
+        """
+        Encodes the model in a underscore separated string that can be used to reconstruct the LLPModel (except cross section function)."
+        """
+        parameters_str = [self.name, str(self.mass), str(self.eps), str(self.tau)]
+        uniqueID = "_".join(parameters_str)
+        return uniqueID
+
+    @classmethod
+    def from_uniqueID(cls, uniqueID: str):
+        # @TODO: how to deal with cross section function? don't want to include path to table here, ruins agnosticism of xsec origin
+        """
+        Returns a new LLPModel object from a unique id.
+        """
+        parameters_str = uniqueID.split("_")
+        placeholder_function = lambda x : None
+        return cls(parameters_str[0], float(parameters_str[1]), float(parameters_str[2]), float(parameters_str[3]), placeholder_function)
+        
     def print_summary(self):
         """
         For testing purposes.
