@@ -4,6 +4,36 @@ import numpy as np
 import pandas as pd
 from collections.abc import Callable
 
+#Function to read the GCD file and make the extruded polygon which
+#defines the edge of the in-ice array
+def MakeSurface(gcdName, padding):
+    file = dataio.I3File(gcdName, "r")
+    frame = file.pop_frame()
+    while not "I3Geometry" in frame:
+        frame = file.pop_frame()
+    geometry = frame["I3Geometry"]
+    xyList = []
+    zmax = -1e100
+    zmin = 1e100
+    step = int(len(geometry.omgeo.keys())/10)
+    print("Loading the DOM locations from the GCD file")
+    for i, key in enumerate(geometry.omgeo.keys()):
+        if i % step == 0:
+            print( "{0}/{1} = {2}%".format(i,len(geometry.omgeo.keys()), int(round(i/len(geometry.omgeo.keys())*100))))
+            
+        if key.om in [61, 62, 63, 64] and key.string <= 81: #Remove IT...
+            continue
+
+        pos = geometry.omgeo[key].position
+
+        if pos.z > 1500:
+            continue
+            
+        xyList.append(pos)
+        i+=1
+    
+    return MuonGun.ExtrudedPolygon(xyList, padding) 
+
 ########## Helper functions for DLS ##########
 def calculate_DLS_lifetime(mass, eps):
     """ lifetime at first order of Dark Leptonic Scalar. two body decay into e+mu """

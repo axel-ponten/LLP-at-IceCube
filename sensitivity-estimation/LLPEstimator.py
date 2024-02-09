@@ -13,6 +13,7 @@ class LLPModel():
         self.eps           = eps           # coupling to SM
         self.tau           = tau           # lifetime in s
         self.func_tot_xsec = func_tot_xsec # should return totcs in cm^2, perhaps a interpolation function from a table
+        self.uniqueID      = self.get_uniqueID() # string with all model information besides xsec function
         
     def calc_tot_xsec(self, energy: float) -> float:
         """
@@ -49,6 +50,25 @@ class LLPModel():
                 prob = 0.0
         return prob
 
+    def get_uniqueID(self) -> str:
+        # @TODO: clever way to compute ID for a model. should contain mass, epsilon, name, lifetime info
+        """
+        Encodes the model in a underscore separated string that can be used to reconstruct the LLPModel (except cross section function)."
+        """
+        parameters_str = [self.name, str(self.mass), str(self.eps), str(self.tau)]
+        uniqueID = "_".join(parameters_str)
+        return uniqueID
+
+    @classmethod
+    def from_uniqueID(cls, uniqueID: str):
+        # @TODO: how to deal with cross section function? don't want to include path to table here, ruins agnosticism of xsec origin
+        """
+        Returns a new LLPModel object from a unique id.
+        """
+        parameters_str = uniqueID.split("_")
+        placeholder_function = lambda x : None
+        return cls(parameters_str[0], float(parameters_str[1]), float(parameters_str[2]), float(parameters_str[3]), placeholder_function)
+        
     def print_summary(self):
         """
         For testing purposes.
@@ -70,6 +90,7 @@ class LLPEstimator():
     def __init__(self, LLPModels: list, min_gap_meters: float = 50.0):
         self.min_gap = min_gap_meters*100.0     # what's the shortest detectable LLP gap, in meters. convert to cm
         self.LLPModels = LLPModels # make sure this stay ordered
+        self.LLPModel_uniqueIDs = [m.uniqueID for m in self.LLPModels]
         self.LLP_funcs = [(m.calc_tot_xsec, m.decay_factor) for m in self.LLPModels]
         
     def calc_LLP_probability(self, length_list: list, energy_list: list) -> list:
@@ -105,6 +126,17 @@ class LLPEstimator():
                                              for xsec, decay in self.LLP_funcs]) # 2D matrix with rows corresponding to each model
         probabilities = matrix_for_calc @ delta_L # NxM*Mx1 where N is # of models and M is # of length steps
         return probabilities
+
+    def calc_LLP_probability_with_ID(self, length_list: list, energy_list: list) -> dict:
+        """
+        Returns the probabilities calculated in calc_LLP_probability with the LLPModel uniqueID.
+        :param length_list: List of lengths from 0 to end of detector in meters, already trimmed for entry/exit margins. Last element should be total length.
+        :param energy_list: List of energies of the muon from detector entry to exit in GeV. Ordered with length_list.
+        :return dict: Returns a dict of detectable LLP probabilities mapped with LLPModel uniqueID.
+        """
+        probabilities = self.calc_LLP_probability_with_ID(length_list, energy_list)
+        map_ID_probability = {ID: prob for ID, prob in zip(self.LLPModel_uniqueIDs, probabilities)}
+        return map_ID_probability
 
     def get_LLPModels(self) -> list:
         return self.LLPModels
