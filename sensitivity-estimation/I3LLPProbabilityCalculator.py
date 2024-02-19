@@ -1,5 +1,5 @@
 import icecube
-from icecube import icetray, MuonGun, dataclasses
+from icecube import icetray, MuonGun, dataclasses, dataio
 import numpy as np
 from LLPEstimator import *
 from estimation_utilities import *
@@ -7,6 +7,36 @@ from estimation_utilities import *
 """
 Iterate through a atmospheric muon spectrum and compute event-by-event detectable LLP probability.
 """
+
+#Function to read the GCD file and make the extruded polygon which
+#defines the edge of the in-ice array
+def MakeSurface(gcdName, padding):
+    file = dataio.I3File(gcdName, "r")
+    frame = file.pop_frame()
+    while not "I3Geometry" in frame:
+        frame = file.pop_frame()
+    geometry = frame["I3Geometry"]
+    xyList = []
+    zmax = -1e100
+    zmin = 1e100
+    step = int(len(geometry.omgeo.keys())/10)
+    print("Loading the DOM locations from the GCD file")
+    for i, key in enumerate(geometry.omgeo.keys()):
+        if i % step == 0:
+            print( "{0}/{1} = {2}%".format(i,len(geometry.omgeo.keys()), int(round(i/len(geometry.omgeo.keys())*100))))
+            
+        if key.om in [61, 62, 63, 64] and key.string <= 81: #Remove IT...
+            continue
+
+        pos = geometry.omgeo[key].position
+
+        if pos.z > 1500:
+            continue
+            
+        xyList.append(pos)
+        i+=1
+    
+    return MuonGun.ExtrudedPolygon(xyList, padding)
 
 class I3LLPProbabilityCalculator(icetray.I3Module):
     def __init__(self,ctx):
@@ -28,6 +58,9 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
         self.exit_margin = 50.0
         self.AddParameter("exit_margin", "Track margin to exit point in meters.", self.exit_margin)
 
+        self.padding = 0.0
+        self.AddParameter("padding", "padding of gcd boundary.", self.padding)
+
         self.LLPEstimator = None
         self.AddParameter("llp_estimator", "LLPEstimator object.", self.LLPEstimator)
 
@@ -37,6 +70,7 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
         self.exit_margin  = self.GetParameter("exit_margin")
         self.n_steps      = self.GetParameter("n_steps")
         self.LLPEstimator = self.GetParameter("llp_estimator")
+        self.padding      = self.GetParameter("padding")
         # create surface for detector volume
         self.gcdFile = self.GetParameter("GCDFile")
         if self.gcdFile != "":
@@ -50,9 +84,9 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
 
     def DAQ(self, frame):
         # @TODO: what if muon stops before exiting detector? maybe its fine cus track.get_energy gives zero?
-        # muon multiplicity check. @TODO: double check what this does when a neutrino appears
-        track_list = MuonGun.Track.harvest(frame['I3MCTree_preMuonProp'], frame['MMCTrackList'])
-        if len(track_list) == 1:
+        track_list = MuonGun.Track.harvest(frame['SignalI3MCTree'], frame['MMCTrackList'])
+        # only single muons are detectable LLP candidates
+        if self.check_single_muon(track_list):
             track = track_list[0]
             ID_probability_map = self.calc_LLP_probability_from_muon(track) # compute LLP probability of the single muon
         else:
@@ -60,6 +94,20 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
         # write I3MapStringDouble to frame
         frame["LLPProbabilities"] = ID_probability_map
 
+        self.PushFrame(frame)
+
+    def check_single_muon(self, track_list):
+        """
+        Check that there is one and only one muon in the event.
+        """
+        counter = 0
+        for track in track_list:
+            if not track.is_neutrino:
+                counter += 1
+        if counter == 1:
+            return True
+        else:
+            return False
     def calc_LLP_probability_from_muon(self, track) -> dict:
         """
         Computes the detectable LLP probability of a given muon track.
@@ -76,6 +124,7 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
             # create lists for LLPEstimator
             length_list   = np.linspace(start_length, stop_length, self.n_steps)
             energy_list   = [track.get_energy(l) for l in length_list]
+            print(energy_list)
             ID_probability_map = dataclasses.I3MapStringDouble(self.LLPEstimator.calc_LLP_probability(length_list, energy_list)) # calculate
         return ID_probability_map
 
