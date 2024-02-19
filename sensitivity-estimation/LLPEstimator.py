@@ -3,32 +3,53 @@ import numpy as np
 import pandas as pd
 from collections.abc import Callable
 
+class LLPMedium():
+    def __init__(self, name: str, number_density: float, Z: int, A: int):
+        self.name           = name           # e.g. "oxygen" or "hydrogen"
+        self.number_density = number_density # per cm^3
+        self.Z              = Z              # atomic number
+        self.A              = A              # mass number
+        
+class LLPProductionCrossSection():
+    def __init__(self, func_tot_xsec_list: list, medium_list: list):
+        self.func_tot_xsec_list = func_tot_xsec_list # tot xsec funcs in cm^2, input energy in units of GeV. type Callable[[float], float]
+        self.medium_list        = medium_list        # list of LLPMedium, ordered with func_tot_xsec_list
+
+    def interactions_per_cm(self, energy: float) -> float:
+        """
+        Total cross section weighted with number density for all elements in medium.
+        Different elements have different production cross section and densities so need to consider separately.
+        :param energy: Energy of the muon in GeV.
+        :return float: Total xsec times num density, units of cm^-1.
+        """
+        # @TODO: is it unnecessary for each grid point to run m.number_density or is it so small it doesn't matter?
+        return sum([xsec(energy)*m.number_density for xsec, m in zip(self.func_tot_xsec_list, self.medium_list)])
+
 class LLPModel():
     """
     Class to hold LLP model parameters and production cross section function used in LLP estimation.
     """
-    def __init__(self, name: str, mass: float, eps: float, tau: float, func_tot_xsec: Callable[[float], float]):
-        self.name          = name          # such as DarkLeptonicScalar, etc.
-        self.mass          = mass          # in GeV
-        self.eps           = eps           # coupling to SM
-        self.tau           = tau           # lifetime in s
-        self.func_tot_xsec = func_tot_xsec # should return totcs in cm^2, perhaps a interpolation function from a table
-        self.uniqueID      = self.get_uniqueID() # string with all model information besides xsec function
-        
-    def calc_tot_xsec(self, energy: float) -> float:
+    def __init__(self, name: str, mass: float, eps: float, tau: float, llp_production_xsec: LLPProductionCrossSection):
+        self.name                = name                # such as DarkLeptonicScalar, etc.
+        self.mass                = mass                # in GeV
+        self.eps                 = eps                 # coupling to SM
+        self.tau                 = tau                 # lifetime in s
+        self.llp_production_xsec = llp_production_xsec # object of LLPProductionCrossSection class
+        self.uniqueID            = self.get_uniqueID() # string with all model information besides xsec function
+
+    def interactions_per_cm(self, energy: float) -> float:
         """
-        Total production cross section in cm^2 per nucleus.
+        Total cross section weighted with number density for all elements in medium.
         :param energy: Energy of muon in GeV.
-        :return float: Total cross section in cm^2.
+        :return float: Interactions per cm.
         """
-        # @TODO: include both hydrogen and oxygen
-        return self.func_tot_xsec(energy)
+        return self.llp_production_xsec.interactions_per_cm(energy)
 
     def get_lifetime(self, gamma: float = 1.0) -> float:
         """
-        Lifetime of the LLP model. Can give gamma to get time dilated lifetime.
-        :param gamma: lorentz boost of the LLP. often given by E/m.
-        :return float: lifetime of the LLP. if no gamma given, then in rest frame.
+        Lifetime of the LLP model in lab frame for some gamma.
+        :param gamma: Lorentz boost of the LLP. Given by E/m.
+        :return float: Lifetime of the LLP in lab frame.
         """
         return self.tau * gamma
 
@@ -52,8 +73,10 @@ class LLPModel():
 
     def get_uniqueID(self) -> str:
         # @TODO: clever way to compute ID for a model. should contain mass, epsilon, name, lifetime info
+        # @TODO: how to include the cross section function?
         """
-        Encodes the model in a underscore separated string that can be used to reconstruct the LLPModel (except cross section function)."
+        Encodes the model in a underscore separated string.
+        Used to reconstruct the LLPModel (except cross section function)."
         """
         parameters_str = [self.name, str(self.mass), str(self.eps), str(self.tau)]
         uniqueID = "_".join(parameters_str)
@@ -91,11 +114,15 @@ class LLPEstimator():
         self.min_gap = min_gap_meters*100.0     # what's the shortest detectable LLP gap, in meters. convert to cm
         self.LLPModels = LLPModels # make sure this stay ordered
         self.LLPModel_uniqueIDs = [m.uniqueID for m in self.LLPModels]
-        self.LLP_funcs = [(m.calc_tot_xsec, m.decay_factor) for m in self.LLPModels]
+        self.LLP_funcs = [(m.interactions_per_cm, m.decay_factor) for m in self.LLPModels]
+        # @TODO: add medium with different number densities
         
     def calc_LLP_probability(self, length_list: list, energy_list: list) -> list:
         """
-        Computes the total detectable LLP probability for a muon track for all models in the LLPEstimator. Convolution of segmented thick target approximation and decay factor.
+        Computes the total detectable LLP probability for a muon track for all models in the LLPEstimator.
+        
+        Convolution of segmented thick target approximation and decay factor.
+
         :param length_list: List of lengths from 0 to end of detector in meters, already trimmed for entry/exit margins. Last element should be total length.
         :param energy_list: List of energies of the muon from detector entry to exit in GeV. Ordered with length_list.
         :return list: Returns a list of detectable LLP probabilities. Ordered with list of LLPModels.
@@ -107,7 +134,7 @@ class LLPEstimator():
             raise ValueError("Negative energies not allowed. If muon stopped, give a length and energy list that stops at stopping point.")
             return None
 
-        # @TODO: come up with clever way using numpy functionality to compute the probaiblities faster
+        # @TODO: come up with clever way using numpy functionality to compute the probabilities faster
         
         # numpify input
         length_array = np.asarray(length_list)*100.0 # convert to cm
@@ -117,13 +144,11 @@ class LLPEstimator():
         # parameters for calculations                         
         l2_array = track_length - length_array - self.min_gap # from production point to furthest available decay point
         delta_L = np.append(np.diff(length_array), 0)         # step length, in cm
-        n_oxygen = 6.02214076e23 * 0.92 / 18                  # number density of oxygen in ice
-        n_hydrogen = 2*n_oxygen                               # number density of hydrogen in ice
         
-        # @TODO: also include hydrogen contribution
         # compute probability = sum( delta_L * decay_factor * number_density * tot_xsec )
-        matrix_for_calc = np.row_stack([decay(self.min_gap, l2_array, energy_array)*n_oxygen*xsec(energy_array)
-                                             for xsec, decay in self.LLP_funcs]) # 2D matrix with rows corresponding to each model
+        # @TODO: make more readable
+        matrix_for_calc = np.row_stack([inter_per_cm(energy_array)*decay(self.min_gap, l2_array, energy_array)
+                                             for inter_per_cm, decay in self.LLP_funcs]) # 2D matrix with rows corresponding to each model
         probabilities = matrix_for_calc @ delta_L # NxM*Mx1 where N is # of models and M is # of length steps
         return probabilities
 
@@ -140,7 +165,3 @@ class LLPEstimator():
 
     def get_LLPModels(self) -> list:
         return self.LLPModels
-
-
-        
-    

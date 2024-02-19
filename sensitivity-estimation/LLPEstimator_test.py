@@ -25,6 +25,10 @@ def plot_interpolation(df, interpfunc, mass, eps=1):
     plt.savefig("LLPEstimator_test_plots/1D_interpolation_"+"{:.3f}".format(mass)+".png")
     plt.show()
 
+
+############## TEST Cross Sections ##############
+# @TODO: what happens if we put zero in?
+
 ############## TEST LLPModel ##############
 print("Testing LLPModel")
 # parameters for test
