@@ -43,8 +43,13 @@ print("Parameters:", name, mass, eps, tau, path_to_table)
 df = pd.read_csv(path_to_table, names=["E0", "totcs"])
 func_to_xsec = interp1d(df["E0"], eps**2*df["totcs"],kind="quadratic")
 
+# create LLPProductionCrossSection
+n_oxygen = 6.02214076e23 * 0.92 / 18 # number density of oxygen in ice
+oxygen = LLPMedium("O", n_oxygen, 8, 16)
+dls_xsec = LLPProductionCrossSection([func_to_xsec, oxygen])
+
 # create LLPModel
-DLS = LLPModel(name, mass, eps, tau, func_to_xsec)
+DLS = LLPModel(name, mass, eps, tau, dls_xsec)
 DLS.print_summary()
 
 # print lifetimes at different energies
@@ -52,7 +57,7 @@ print("Lifetime at 10 GeV", DLS.get_lifetime(10/mass))
 print("at 100 GeV", DLS.get_lifetime(100/mass))
 print("at 1000 GeV", DLS.get_lifetime(1000/mass))
 # plot
-plot_interpolation(df, DLS.func_tot_xsec, mass, eps)
+plot_interpolation(df, DLS.llp_production_xsec.func_tot_xsec_list[0], mass, eps)
 
 # test decay factor
 print("test decay factor at E = 500 GeV for:")
@@ -65,6 +70,7 @@ print("l1=50, l2=-10", DLS.decay_factor(50,-10,500))
 ############## END ##############
 
 ############## TEST LLPEstimator ##############
+# @TODO: fix for new LLPModel structure
 print("\n\nTesting LLPEstimator")
 
 masses      = [0.107, 0.110, 0.115, 0.13]

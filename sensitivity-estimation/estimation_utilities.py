@@ -15,6 +15,7 @@ def calculate_DLS_lifetime(mass, eps):
     return GeV_to_s * 1 / width
 
 def generate_DLSModels(masses, epsilons, names, table_paths):
+    # @TODO: fix for new structure of LLPModel
     LLPModel_list = []
     for mass, eps, name, path in zip(masses, epsilons, names, table_paths):
         # lifetime
