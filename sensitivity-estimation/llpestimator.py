@@ -19,31 +19,30 @@ class LLPProductionCrossSection():
     @TODO: add docstring
     """
     def __init__(self, func_tot_xsec_list: list, medium_list: list):
-        # tot xsec in cm^2, input energy in GeV.
-        self.func_tot_xsec_list = func_tot_xsec_list
-        # list of LLPMedium, ordered with func_tot_xsec_list
-        self.medium_list = medium_list
+        self.func_tot_xsec_list = func_tot_xsec_list # input GeV energy, returns cm^2
+        self.medium_list = medium_list # list of LLPMedium, ordered with func_tot_xsec_list
 
     def interactions_per_cm(self, energy: float) -> float:
         """
         Total cross section weighted with number density for all elements in medium.
+        $\Sigma^{elem.}_{i} \sigma^{i}_tot(E) \cdot n_{i}$
         :param energy: Energy of the muon in GeV.
         :return float: Total xsec times num density, units of cm^-1.
         """
-        # @TODO: is it unnecessary for each grid point to run m.number_density or is it so small it doesn't matter?
+        # @TODO: is it unnecessary for each grid point to run m.number_density or doesn't matter?
         return sum([xsec(energy)*m.number_density for xsec, m in zip(self.func_tot_xsec_list, self.medium_list)])
 
 class LLPModel():
     """
     Class to hold LLP model parameters and production cross section function used in LLP estimation.
     """
-    def __init__(self, name: str, mass: float, eps: float, tau: float, llp_production_xsec: LLPProductionCrossSection):
-        self.name                 = name                 # such as DarkLeptonicScalar, etc.
-        self.mass                 = mass                 # in GeV
-        self.eps                  = eps                  # coupling to SM
-        self.tau                  = tau                  # lifetime in s
-        self.llp_production_xsec  = llp_production_xsec  # object of LLPProductionCrossSection class
-        self.unique_id            = self.get_unique_id() # string with all model information besides xsec function
+    def __init__(self, name: str, mass: float, eps: float, tau: float, llp_xsec: LLPProductionCrossSection):
+        self.name       = name                 # such as DarkLeptonicScalar, etc.
+        self.mass       = mass                 # in GeV
+        self.eps        = eps                  # coupling to SM
+        self.tau        = tau                  # lifetime in s
+        self.llp_xsec   = llp_xsec             # for computing interactions per cm
+        self.unique_id  = self.get_unique_id() # string with all model information besides xsec function
 
     def interactions_per_cm(self, energy: float) -> float:
         """
@@ -51,7 +50,7 @@ class LLPModel():
         :param energy: Energy of muon in GeV.
         :return float: Interactions per cm.
         """
-        return self.llp_production_xsec.interactions_per_cm(energy)
+        return self.llp_xsec.interactions_per_cm(energy)
 
     def get_lifetime(self, gamma: float = 1.0) -> float:
         """
@@ -63,7 +62,8 @@ class LLPModel():
 
     def decay_factor(self, l1: float, l2: float, energy: float) -> float:
         """
-        What is probability to decay between lengths l1 and l2? Integrate exponential pdf between l1 and l2.
+        Probability to decay between lengths l1 and l2.
+        Integrate exponential decay pdf between l1 and l2.
         :param l1: Minimum length before decay in cm. Should be same as minimum detectable gap length.
         :param l2: Maximum length before decay in cm.
         :param energy: Energy of the LLP.
@@ -108,8 +108,8 @@ class LLPModel():
         print("mass", self.mass)
         print("eps", self.eps)
         print("tau", self.tau)
-        print("LLPProductionCrossSection", self.llp_production_xsec)
-        print("Test LLPProductionCrossSection at 500 GeV", [calc_tot_xsec(500.0) for calc_tot_xsec in self.llp_production_xsec.func_tot_xsec_list])
+        print("LLPProductionCrossSection", self.llp_xsec)
+        print("Test LLPProductionCrossSection at 500 GeV", [calc_tot_xsec(500.0) for calc_tot_xsec in self.llp_xsec.func_tot_xsec_list])
         print("Test interaction per cm at 500 GeV", self.interactions_per_cm(500.0))
         print("Decay factor 500 GeV 100 to 800 m", self.decay_factor(100.0, 800.0, 500.0))
 
@@ -129,9 +129,13 @@ class LLPEstimator():
 
     def calc_llp_probability(self, length_list: list, energy_list: list) -> list:
         """
-        Computes the total detectable LLP probability for a muon track for all models in the LLPEstimator.
-        
-        Convolution of segmented thick target approximation and decay factor.
+        Computes the total detectable LLP probability for a muon track.
+
+        Detectable events have production and decay vertex inside detector volume,
+        and sufficiently long decay gap. Computed through convolution of segmented thin target
+        approximation convolved with decay factor (partially integrated decay pdf).
+
+        Computes probability separately for all models in the LLPEstimator.
 
         :param length_list: Lengths from 0 to end of detector in m, trimmed for entry/exit margins. Last element should be total length.
         :param energy_list: Energies of the muon from detector entry to exit in GeV. Ordered with length_list.
@@ -153,12 +157,14 @@ class LLPEstimator():
         l2_array = track_length - length_array - self.min_gap # from production point to furthest available decay point
         delta_L = np.append(np.diff(length_array), 0)         # step length, in cm
         
-        # compute probability = sum( delta_L * decay_factor * number_density * tot_xsec )
+        # compute probability = sum( delta_L * decay_factor * sum_atoms(atom_number_density * tot_xsec_atom) )
         # @TODO: make more readable
-        # 2D matrix with rows corresponding to each model
+        # 2D matrix with rows = models, cols = thin target approx segments
         matrix_for_calc = np.row_stack([inter_per_cm(energy_array)*decay(self.min_gap, l2_array, energy_array)
                                              for inter_per_cm, decay in self.llp_funcs])
         probabilities = matrix_for_calc @ delta_L # NxM*Mx1 where N is # of models and M is # of length steps
+
+        # list of probabilities, ordered with llpmodels
         return probabilities
 
     def calc_llp_probability_with_id(self, length_list: list, energy_list: list) -> dict:
