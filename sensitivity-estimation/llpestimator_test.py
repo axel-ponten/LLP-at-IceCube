@@ -1,4 +1,4 @@
-from LLPEstimator import *
+from llpestimator import *
 from estimation_utilities import *
 import os
 import numpy as np
@@ -26,11 +26,21 @@ def plot_interpolation(df, interpfunc, mass, eps=1):
     plt.show()
 
 
-############## TEST Cross Sections ##############
-# @TODO: what happens if we put zero in?
+############## TEST LLPMedium ##############
+print("############## TEST LLPMedium ##############")
+n_oxygen = 6.02214076e23 * 0.92 / 18 # number density of oxygen in ice
+n_hydrogen = 2*n_oxygen              # number density of hydrogen in ice
 
-############## TEST LLPModel ##############
-print("Testing LLPModel")
+oxygen   = LLPMedium("O", n_oxygen, 8, 16)
+hydrogen = LLPMedium("H", n_hydrogen, 1, 1)
+
+print("n_oxygen:", oxygen.number_density)
+print("n_hydrogen:", hydrogen.number_density)
+############## END LLPMedium ##############
+
+############## TEST LLPProductionCrossSection and LLPModel ##############
+# @TODO: include hydrogen
+print("############## TEST LLPProductionCrossSection ##############")
 # parameters for test
 name = "DarkLeptonicScalar"
 mass = 0.115
@@ -39,17 +49,20 @@ tau = calculate_DLS_lifetime(mass, eps)
 path_to_table = os.getcwd() + "/cross_section_tables/totcs_WW_m_"+"{:.3f}".format(mass) + ".csv"
 print("Parameters:", name, mass, eps, tau, path_to_table)
 
+# CREATE LLPProductionCrossSection
 # read in table
 df = pd.read_csv(path_to_table, names=["E0", "totcs"])
-func_to_xsec = interp1d(df["E0"], eps**2*df["totcs"],kind="quadratic")
+func_to_xsec = interp1d(df["E0"], eps**2*df["totcs"],kind="quadratic", bounds_error=False,fill_value=(0.0, None))
+llp_xsec = LLPProductionCrossSection([func_to_xsec], [oxygen])
 
-# create LLPProductionCrossSection
-n_oxygen = 6.02214076e23 * 0.92 / 18 # number density of oxygen in ice
-oxygen = LLPMedium("O", n_oxygen, 8, 16)
-dls_xsec = LLPProductionCrossSection([func_to_xsec, oxygen])
+print("interactions per cm only using oxygen at 700. GeV", llp_xsec.interactions_per_cm(700.0))
+print("interactions per cm only using oxygen at 100000. GeV", llp_xsec.interactions_per_cm(100000.0))
+print("interactions per cm only using oxygen at 1e7 GeV", llp_xsec.interactions_per_cm(1e7))
+print("interactions per cm only using oxygen at 5. GeV", llp_xsec.interactions_per_cm(5.0))
+print("interactions per cm only using oxygen at 0. GeV", llp_xsec.interactions_per_cm(0.0))
 
 # create LLPModel
-DLS = LLPModel(name, mass, eps, tau, dls_xsec)
+DLS = LLPModel(name, mass, eps, tau, llp_xsec)
 DLS.print_summary()
 
 # print lifetimes at different energies
@@ -57,7 +70,7 @@ print("Lifetime at 10 GeV", DLS.get_lifetime(10/mass))
 print("at 100 GeV", DLS.get_lifetime(100/mass))
 print("at 1000 GeV", DLS.get_lifetime(1000/mass))
 # plot
-plot_interpolation(df, DLS.llp_production_xsec.func_tot_xsec_list[0], mass, eps)
+plot_interpolation(df, DLS.llp_xsec.func_tot_xsec_list[0], mass, eps)
 
 # test decay factor
 print("test decay factor at E = 500 GeV for:")
@@ -83,16 +96,16 @@ models = generate_DLSModels(masses, epsilons, names, table_paths)
 min_gap = 50.0
 # test ID's
 print("\n\n\nID's for created models")
-uniqueID_list = [m.uniqueID() for m in models]
+uniqueID_list = [m.unique_id for m in models]
 print(uniqueID_list)
 print("\n creating new models from the ID's")
-model_from_ID_list = [LLPModel.from_uniqueID(ID) for ID in uniqueID_list]
+model_from_ID_list = [LLPModel.from_unique_id(ID) for ID in uniqueID_list]
 [m.print_summary() for m in model_from_ID_list]
 print("\n\n\n")
 
 my_LLPEstimator = LLPEstimator(models, min_gap)
 print("Models used:")
-[m.print_summary() for m in my_LLPEstimator.get_LLPModels()]
+[m.print_summary() for m in my_LLPEstimator.llpmodels()]
 print("\n\n")
 
 steps = 100
@@ -102,14 +115,16 @@ print("Lengths and energies")
 print(length_list)
 print(energy_list)
 print("Probabilites")
-probabilities = my_LLPEstimator.calc_LLP_probability(length_list, energy_list)
+probabilities = my_LLPEstimator.calc_llp_probability(length_list, energy_list)
 print(probabilities)
+
+# @TODO: check that its ordered with llpmodels
 
 # cProfile for the calculations
 print("####### cProfile for probability calculation #######")
 with cProfile.Profile() as profile:
     for i in range(1000):
-        my_LLPEstimator.calc_LLP_probability(length_list, energy_list)
+        my_LLPEstimator.calc_llp_probability(length_list, energy_list)
 profile_result = pstats.Stats(profile)
 profile_result.sort_stats(pstats.SortKey.TIME)
 profile_result.print_stats()

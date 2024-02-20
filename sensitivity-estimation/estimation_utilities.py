@@ -1,4 +1,4 @@
-from LLPEstimator import *
+from llpestimator import *
 from scipy.interpolate import interp1d
 import numpy as np
 import pandas as pd
@@ -15,20 +15,25 @@ def calculate_DLS_lifetime(mass, eps):
     return GeV_to_s * 1 / width
 
 def generate_DLSModels(masses, epsilons, names, table_paths):
-    # @TODO: fix for new structure of LLPModel
-    LLPModel_list = []
+    # @TODO: fix for hydrogen
+    llpmodel_list = []
+    oxygen = get_ice_oxygen()
     for mass, eps, name, path in zip(masses, epsilons, names, table_paths):
         # lifetime
         tau = calculate_DLS_lifetime(mass, eps)
         # tot_xsec function from interpolation tables
         df = pd.read_csv(path, names=["E0", "totcs"])
         func_tot_xsec = interp1d(df["E0"], eps**2*df["totcs"],kind="quadratic")
+        # create LLPProductionCrossSection
+        llp_xsec = LLPProductionCrossSection([func_tot_xsec], [oxygen])
         # create new LLPModel
-        LLPModel_list.append(LLPModel(name, mass, eps, tau, func_tot_xsec))
-    return LLPModel_list
+        llpmodel_list.append(LLPModel(name, mass, eps, tau, llp_xsec))
+    return llpmodel_list
 
 def generate_DLS_WW_oxygen_paths(masses):
-    folder = "/data/user/axelpo/LLP-at-IceCube/sensitivity-estimation/cross_section_tables/"
+    #folder = "/data/user/axelpo/LLP-at-IceCube/sensitivity-estimation/cross_section_tables/"
+    import os
+    folder = os.getcwd() + "/cross_section_tables/"
     paths  = []
     for m in masses:
         m_str = "{:.3f}".format(m)
@@ -47,6 +52,12 @@ def south_pole_ice():
     oxygen  = LLPMedium("O", n_oxygen, 8, 16)
     hydrogen = LLPMedium("H", n_hydrogen, 1, 1)
     return [oxygen, hydrogen]
+
+def get_ice_oxygen():
+    n_oxygen = 6.02214076e23 * 0.92 / 18 # number density of oxygen in ice
+    oxygen  = LLPMedium("O", n_oxygen, 8, 16)
+    return oxygen
+
 
 ########## useful for creating files for weighting ##########
 def create_hdf(infiles, outfile, keys):
