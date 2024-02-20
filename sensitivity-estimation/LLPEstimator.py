@@ -28,12 +28,12 @@ class LLPModel():
     Class to hold LLP model parameters and production cross section function used in LLP estimation.
     """
     def __init__(self, name: str, mass: float, eps: float, tau: float, llp_production_xsec: LLPProductionCrossSection):
-        self.name                = name                # such as DarkLeptonicScalar, etc.
-        self.mass                = mass                # in GeV
-        self.eps                 = eps                 # coupling to SM
-        self.tau                 = tau                 # lifetime in s
-        self.llp_production_xsec = llp_production_xsec # object of LLPProductionCrossSection class
-        self.uniqueID            = self.get_uniqueID() # string with all model information besides xsec function
+        self.name                 = name                 # such as DarkLeptonicScalar, etc.
+        self.mass                 = mass                 # in GeV
+        self.eps                  = eps                  # coupling to SM
+        self.tau                  = tau                  # lifetime in s
+        self.llp_production_xsec  = llp_production_xsec  # object of LLPProductionCrossSection class
+        self.unique_id            = self.get_unique_id() # string with all model information besides xsec function
 
     def interactions_per_cm(self, energy: float) -> float:
         """
@@ -69,7 +69,7 @@ class LLPModel():
                 prob = 0.0
         return prob
 
-    def get_uniqueID(self) -> str:
+    def get_unique_id(self) -> str:
         # @TODO: clever way to compute ID for a model. should contain mass, epsilon, name, lifetime info
         # @TODO: how to include the cross section function?
         """
@@ -77,16 +77,16 @@ class LLPModel():
         Used to reconstruct the LLPModel (except cross section function)."
         """
         parameters_str = [self.name, str(self.mass), str(self.eps), str(self.tau)]
-        uniqueID = "_".join(parameters_str)
-        return uniqueID
+        unique_id = "_".join(parameters_str)
+        return unique_id
 
     @classmethod
-    def from_uniqueID(cls, uniqueID: str):
+    def from_unique_id(cls, unique_id: str):
         # @TODO: how to deal with cross section function? don't want to include path to table here, ruins agnosticism of xsec origin
         """
         Returns a new LLPModel object from a unique id.
         """
-        parameters_str = uniqueID.split("_")
+        parameters_str = unique_id.split("_")
         placeholder_function = lambda x : None
         return cls(parameters_str[0], float(parameters_str[1]), float(parameters_str[2]), float(parameters_str[3]), placeholder_function)
         
@@ -94,6 +94,7 @@ class LLPModel():
         """
         For testing purposes.
         """
+        print("unique ID:", self.unique_id)
         print("Parameters of model", self.name, ":")
         print("mass", self.mass)
         print("eps", self.eps)
