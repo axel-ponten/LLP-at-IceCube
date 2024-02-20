@@ -96,8 +96,11 @@ class LLPModel():
         Returns a new LLPModel object from a unique id.
         """
         parameters_str = unique_id.split("_")
-        placeholder_function = lambda x : None
-        return cls(parameters_str[0], float(parameters_str[1]), float(parameters_str[2]), float(parameters_str[3]), placeholder_function)
+        return cls(parameters_str[0],
+                   float(parameters_str[1]),
+                   float(parameters_str[2]),
+                   float(parameters_str[3]),
+                   None)
 
     def print_summary(self):
         """
@@ -109,7 +112,10 @@ class LLPModel():
         print("eps", self.eps)
         print("tau", self.tau)
         print("LLPProductionCrossSection", self.llp_xsec)
-        print("Test LLPProductionCrossSection at 500 GeV", [calc_tot_xsec(500.0) for calc_tot_xsec in self.llp_xsec.func_tot_xsec_list])
+        print(
+            "Test LLPProductionCrossSection at 500 GeV",
+            [calc_tot_xsec(500.0) for calc_tot_xsec in self.llp_xsec.func_tot_xsec_list]
+        )
         print("Test interaction per cm at 500 GeV", self.interactions_per_cm(500.0))
         print("Decay factor 500 GeV 100 to 800 m", self.decay_factor(100.0, 800.0, 500.0))
 
