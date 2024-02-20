@@ -100,8 +100,10 @@ class LLPModel():
         print("mass", self.mass)
         print("eps", self.eps)
         print("tau", self.tau)
-        print("func_tot_xsec", self.func_tot_xsec)
-        print("Test func_tot_xsec at 500 GeV", self.calc_tot_xsec(500.0))
+        print("LLPProductionCrossSection", self.llp_production_xsec)
+        print("Test LLPProductionCrossSection at 500 GeV", [calc_tot_xsec(500.0) for calc_tot_xsec in self.llp_production_xsec.func_tot_xsec_list])
+        print("Test interaction per cm at 500 GeV", self.interactions_per_cm(500.0))
+        print("Decay factor 500 GeV 100 to 800 m", self.decay_factor(100.0, 800.0, 500.0))
 
 
 class LLPEstimator():
