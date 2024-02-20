@@ -72,7 +72,7 @@ class LLPModel():
         c_gamma_tau = 29979245800.0 * self.get_lifetime(energy/self.mass) # c [cm/s] * gamma * tau
         prob = np.exp(-l1/c_gamma_tau) - np.exp(-l2/c_gamma_tau) # \int^l1_l2 1/c*gamma*tau*exp(-l/c*gamma*tau)
         # check for negative values
-        if isinstance(prob) is np.ndarray:
+        if isinstance(prob, np.ndarray):
             prob[prob < 0] = 0.0 # if l2 is shorter than l1, return 0
         else:
             prob = max(prob, 0.0)
