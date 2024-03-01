@@ -1,38 +1,15 @@
-from LLPEstimator import *
+"""
+Collection of utility functions to implement llpestimation package,
+such as creation of dark leptonic scalar models (a type of LLP),
+or to generate interpolation functions from the tables.
+"""
+
+from llpestimation import LLPModel, LLPEstimator, LLPMedium, LLPProductionCrossSection
 from scipy.interpolate import interp1d
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from collections.abc import Callable
-
-#Function to read the GCD file and make the extruded polygon which
-#defines the edge of the in-ice array
-def MakeSurface(gcdName, padding):
-    file = dataio.I3File(gcdName, "r")
-    frame = file.pop_frame()
-    while not "I3Geometry" in frame:
-        frame = file.pop_frame()
-    geometry = frame["I3Geometry"]
-    xyList = []
-    zmax = -1e100
-    zmin = 1e100
-    step = int(len(geometry.omgeo.keys())/10)
-    print("Loading the DOM locations from the GCD file")
-    for i, key in enumerate(geometry.omgeo.keys()):
-        if i % step == 0:
-            print( "{0}/{1} = {2}%".format(i,len(geometry.omgeo.keys()), int(round(i/len(geometry.omgeo.keys())*100))))
-            
-        if key.om in [61, 62, 63, 64] and key.string <= 81: #Remove IT...
-            continue
-
-        pos = geometry.omgeo[key].position
-
-        if pos.z > 1500:
-            continue
-            
-        xyList.append(pos)
-        i+=1
-    
-    return MuonGun.ExtrudedPolygon(xyList, padding) 
 
 ########## Helper functions for DLS ##########
 def calculate_DLS_lifetime(mass, eps):
@@ -45,19 +22,26 @@ def calculate_DLS_lifetime(mass, eps):
     return GeV_to_s * 1 / width
 
 def generate_DLSModels(masses, epsilons, names, table_paths):
-    LLPModel_list = []
+    # @TODO: fix for hydrogen
+    llpmodel_list = []
+    oxygen = get_ice_oxygen()
     for mass, eps, name, path in zip(masses, epsilons, names, table_paths):
         # lifetime
         tau = calculate_DLS_lifetime(mass, eps)
         # tot_xsec function from interpolation tables
         df = pd.read_csv(path, names=["E0", "totcs"])
-        func_tot_xsec = interp1d(df["E0"], eps**2*df["totcs"],kind="quadratic")
+        func_tot_xsec = interp1d(df["E0"], eps**2*df["totcs"],kind="linear")
+        # create LLPProductionCrossSection
+        llp_xsec = LLPProductionCrossSection([func_tot_xsec], [oxygen])
         # create new LLPModel
-        LLPModel_list.append(LLPModel(name, mass, eps, tau, func_tot_xsec))
-    return LLPModel_list
+        llpmodel_list.append(LLPModel(name, mass, eps, tau, llp_xsec))
+    return llpmodel_list
 
-def generate_DLS_WW_oxygen_paths(masses):
-    folder = "/data/user/axelpo/LLP-at-IceCube/sensitivity-estimation/cross_section_tables/"
+def generate_DLS_WW_oxygen_paths(masses, folder = None):
+    #folder = "/data/user/axelpo/LLP-at-IceCube/sensitivity-estimation/cross_section_tables/"
+    import os
+    if folder is None:
+        folder = os.getcwd() + "/cross_section_tables/"
     paths  = []
     for m in masses:
         m_str = "{:.3f}".format(m)
@@ -65,4 +49,38 @@ def generate_DLS_WW_oxygen_paths(masses):
             m_str = m_str[:-1]
         paths.append(folder+"totcs_WW_m_"+m_str+".csv")
     return paths
-        
+
+########## Create south pole ice ##########
+def south_pole_ice():
+    """
+    List of LLPMedium corresponding to IceCube ice.
+    """
+    n_oxygen = 6.02214076e23 * 0.92 / 18 # number density of oxygen in ice
+    n_hydrogen = 2*n_oxygen              # number density of hydrogen in ice
+    oxygen  = LLPMedium("O", n_oxygen, 8, 16)
+    hydrogen = LLPMedium("H", n_hydrogen, 1, 1)
+    return [oxygen, hydrogen]
+
+def get_ice_oxygen():
+    n_oxygen = 6.02214076e23 * 0.92 / 18 # number density of oxygen in ice
+    oxygen  = LLPMedium("O", n_oxygen, 8, 16)
+    return oxygen
+
+########## Plotting ##########
+def plot_interpolation(df, interpfunc, mass, eps=1):
+    E0array = np.logspace(1,5,1000)
+    totcsarray = [interpfunc(energy) for energy in E0array]
+    # plot
+    plt.figure()
+    plt.plot(df["E0"],eps**2*df["totcs"],'k+', label="table entries")
+    plt.plot(E0array,totcsarray,'b',label="interpolaton")
+    plt.ylabel('$\sigma \; [cm^2]$')
+    plt.xlabel('$E_0 \; [GeV]$')
+    plt.legend()
+    plt.grid()
+    plt.xscale("log")
+    plt.xlim([10,10000])
+    plt.title(mass)
+    plt.savefig("1D_interpolation_"+"{:.3f}".format(mass)+".png")
+    #plt.show()
+

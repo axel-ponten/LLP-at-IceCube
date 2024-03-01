@@ -1,3 +1,0 @@
-Estimating the number of detectable LLP events at IceCube from a simulated atmospheric muon flux. Contains scripts to calculate the event by event detectable LLP probability (probability that both production and decay vertex are inside detector volume). Contains interpolation table generation used for total production cross sections. Assumes the LLP takes all the muon energy (justified by the differential cross section peaking at fractional energy x -> 1)
-
-Old naive estimation in estimate_DLS_events.nb, assuming a monochromatic muon flux with zenith = 0 and using the thin target approximation (including a decay factor to contain both LLP vertices in the detector).
