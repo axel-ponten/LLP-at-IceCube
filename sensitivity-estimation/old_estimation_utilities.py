@@ -1,14 +1,7 @@
-"""
-Collection of utility functions to implement llpestimation package,
-such as creation of dark leptonic scalar models (a type of LLP),
-or to generate interpolation functions from the tables.
-"""
-
-from llpestimation import LLPModel, LLPEstimator, LLPMedium, LLPProductionCrossSection
+from llpestimator import *
 from scipy.interpolate import interp1d
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from collections.abc import Callable
 
 ########## Helper functions for DLS ##########
@@ -30,18 +23,17 @@ def generate_DLSModels(masses, epsilons, names, table_paths):
         tau = calculate_DLS_lifetime(mass, eps)
         # tot_xsec function from interpolation tables
         df = pd.read_csv(path, names=["E0", "totcs"])
-        func_tot_xsec = interp1d(df["E0"], eps**2*df["totcs"],kind="linear")
+        func_tot_xsec = interp1d(df["E0"], eps**2*df["totcs"],kind="quadratic")
         # create LLPProductionCrossSection
         llp_xsec = LLPProductionCrossSection([func_tot_xsec], [oxygen])
         # create new LLPModel
         llpmodel_list.append(LLPModel(name, mass, eps, tau, llp_xsec))
     return llpmodel_list
 
-def generate_DLS_WW_oxygen_paths(masses, folder = None):
+def generate_DLS_WW_oxygen_paths(masses):
     #folder = "/data/user/axelpo/LLP-at-IceCube/sensitivity-estimation/cross_section_tables/"
     import os
-    if folder is None:
-        folder = os.getcwd() + "/cross_section_tables/"
+    folder = os.getcwd() + "/cross_section_tables/"
     paths  = []
     for m in masses:
         m_str = "{:.3f}".format(m)
@@ -66,21 +58,14 @@ def get_ice_oxygen():
     oxygen  = LLPMedium("O", n_oxygen, 8, 16)
     return oxygen
 
-########## Plotting ##########
-def plot_interpolation(df, interpfunc, mass, eps=1):
-    E0array = np.logspace(1,5,1000)
-    totcsarray = [interpfunc(energy) for energy in E0array]
-    # plot
-    plt.figure()
-    plt.plot(df["E0"],eps**2*df["totcs"],'k+', label="table entries")
-    plt.plot(E0array,totcsarray,'b',label="interpolaton")
-    plt.ylabel('$\sigma \; [cm^2]$')
-    plt.xlabel('$E_0 \; [GeV]$')
-    plt.legend()
-    plt.grid()
-    plt.xscale("log")
-    plt.xlim([10,10000])
-    plt.title(mass)
-    plt.savefig("1D_interpolation_"+"{:.3f}".format(mass)+".png")
-    #plt.show()
 
+########## useful for creating files for weighting ##########
+def create_hdf(infiles, outfile, keys):
+    tray = I3Tray()
+    tray.Add("I3Reader", FileNameList=infiles)
+    tray.Add(
+        hdfwriter.I3SimHDFWriter,
+        keys=keys,
+        output=outfile,
+    )
+    tray.Execute()
