@@ -27,7 +27,7 @@ gcdfile = "/data/user/axelpo/LLP-at-IceCube/dark-leptonic-scalar-simulation/reso
 masses   = [0.115, 0.115, 0.13, 0.13]
 epsilons = [5e-6, 1e-5, 5e-6, 1e-5]
 names    = ["DLS" for _ in masses]
-table_paths = generate_DLS_WW_oxygen_paths(masses)
+table_paths = generate_DLS_WW_oxygen_paths(masses, folder = "../cross_section_tables/")
 DLS_models = generate_DLSModels(masses, epsilons, names, table_paths)
 
 # create LLPEstimator
