@@ -48,7 +48,7 @@ class LLPModel():
         # lorentz boost
         return self.tau * gamma
 
-    def decay_factor(self, l1: np.ndarray[float], l2: np.ndarray[float], energy: np.ndarray[float]) -> np.ndarray[float]:
+    def decay_factor(self, l1, l2, energy):
         """
         Probability to decay between lengths l1 and l2.
 
