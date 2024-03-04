@@ -80,15 +80,29 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
             self.surface = MuonGun.Cylinder(1000,500) # approximate detector volume
 
         # predefined list of tuples for events with probabilities that are 0
-        self._zero_prob_map = dataclasses.I3MapStringDouble({ID: 0 for ID in self.LLPEstimator.LLPModel_uniqueIDs})
+        self._zero_prob_map = dataclasses.I3MapStringDouble(
+            {ID: 0 for ID in self.LLPEstimator.llpmodel_unique_ids}
+        )
 
     def DAQ(self, frame):
+        """ Compute total detectable LLP probability for the event using the
+        llpestimation package.
+        
+        Computes probability separately for all models in the LLPEstimator 
+        and stores the result as I3MapStringDouble of LLP model ID to probability.
+
+        Detectable events have production and decay vertex inside detector volume,
+        and sufficiently long decay gap. Computed through convolution of segmented thin target
+        approximation convolved with decay factor (partially integrated decay pdf).
+
+        Only single muons have detectable gaps, so bundles get 0 probability.
+        """
         # @TODO: what if muon stops before exiting detector? maybe its fine cus track.get_energy gives zero?
         track_list = MuonGun.Track.harvest(frame['SignalI3MCTree'], frame['MMCTrackList'])
         # only single muons are detectable LLP candidates
         if self.check_single_muon(track_list):
             track = track_list[0]
-            ID_probability_map = self.calc_LLP_probability_from_muon(track) # compute LLP probability of the single muon
+            ID_probability_map = self.calc_LLP_probability_from_muon(track) # llp prob for single muon
         else:
             ID_probability_map = self._zero_prob_map # if muon bundle, return zero prob
         # write I3MapStringDouble to frame
@@ -108,9 +122,11 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
             return True
         else:
             return False
+        
     def calc_LLP_probability_from_muon(self, track) -> dict:
-        """
-        Computes the detectable LLP probability of a given muon track.
+        """ Computes the detectable LLP probability of a given single muon.
+        Creates a list of lengths and muon energies inside the detector that
+        represents the muon track. Pass this to LLPEstimator.
         """
         # Find distance to entrance and exit from sampling volume
         intersections = self.surface.intersection(track.pos, track.dir)
@@ -121,11 +137,13 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
         if start_length - stop_length <= self.min_gap:
             ID_probability_map = self._zero_prob_map # if no available space, return zero prob
         else:
-            # create lists for LLPEstimator
+            # create ordered length and energy lists for LLPEstimator
             length_list   = np.linspace(start_length, stop_length, self.n_steps)
             energy_list   = [track.get_energy(l) for l in length_list]
             print(energy_list)
-            ID_probability_map = dataclasses.I3MapStringDouble(self.LLPEstimator.calc_LLP_probability(length_list, energy_list)) # calculate
+            ID_probability_map = dataclasses.I3MapStringDouble(
+                self.LLPEstimator.calc_LLP_probability(length_list, energy_list)
+            ) # calculate
         return ID_probability_map
 
     def Finish(self):
