@@ -1,6 +1,9 @@
 """
 Simple example application of llpestimation package.
 """
+import sys
+sys.path.append("..")
+
 from llpestimation import LLPModel, LLPEstimator, LLPMedium, LLPProductionCrossSection
 from estimation_utilities import *
 import numpy as np
