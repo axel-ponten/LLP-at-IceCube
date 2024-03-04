@@ -54,6 +54,11 @@ class LLPEstimator():
         energy_array = np.asarray(energy_list)       # GeV
         track_length = length_array[-1]              # from entry to exit of detector
 
+        # trim if muon stops
+        good_points = np.where(energy_array != 0)
+        length_array = length_array[good_points]
+        energy_array = energy_array[good_points]
+
         # parameters for calculations
         l2_array = track_length - length_array - self.min_gap # from prod. vertex to furthest decay vertex
         delta_L = np.append(np.diff(length_array), 0)         # step length, in cm

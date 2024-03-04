@@ -39,13 +39,13 @@ class LLPModel():
         :return float: Lifetime of the LLP in lab frame.
         """
         # @TODO: maybe fix this so that we don't stop execution for gamma < 1
-        # # check for physical gamma
-        # if isinstance(gamma, np.ndarray):
-        #     if np.any(gamma < 1.0):
-        #         raise ValueError("Lorentz boost can't be smaller than 1.")
-        # else:
-        #     if gamma < 1.0:
-        #         raise ValueError("Lorentz boost can't be smaller than 1.")
+        # check for physical gamma
+        if isinstance(gamma, np.ndarray):
+            if np.any(gamma < 1.0):
+                raise ValueError("Lorentz boost can't be smaller than 1.")
+        else:
+            if gamma < 1.0:
+                raise ValueError("Lorentz boost can't be smaller than 1.")
         # lorentz boost
         return self.tau * gamma
 
