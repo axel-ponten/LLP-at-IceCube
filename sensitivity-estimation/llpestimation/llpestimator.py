@@ -57,7 +57,7 @@ class LLPEstimator():
         # trim if muon stops (energy is zero)
         good_points = np.where(energy_array > 0)
         # if only zero muon energy
-        if np.all(good_points == False) or good_points.size == 0:
+        if np.all(good_points == False) or good_points.size[0] == 0:
             return np.zeros(len(self.llpmodels))
         length_array = length_array[good_points]
         energy_array = energy_array[good_points]
