@@ -1,7 +1,7 @@
 import icecube
 from icecube import icetray, MuonGun, dataclasses, dataio
 import numpy as np
-from LLPEstimator import *
+from llpestimation import LLPMedium, LLPProductionCrossSection, LLPModel, LLPEstimator
 from estimation_utilities import *
 
 """
@@ -32,7 +32,7 @@ def MakeSurface(gcdName, padding):
 
         if pos.z > 1500:
             continue
-            
+
         xyList.append(pos)
         i+=1
     
