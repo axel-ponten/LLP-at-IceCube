@@ -38,13 +38,14 @@ class LLPModel():
         :param gamma: Lorentz boost of the LLP. Given by E/m.
         :return float: Lifetime of the LLP in lab frame.
         """
-        # check for physical gamma
-        if isinstance(gamma, np.ndarray):
-            if np.any(gamma < 1.0):
-                raise ValueError("Lorentz boost can't be smaller than 1.")
-        else:
-            if gamma < 1.0:
-                raise ValueError("Lorentz boost can't be smaller than 1.")
+        # @TODO: maybe fix this so that we don't stop execution for gamma < 1
+        # # check for physical gamma
+        # if isinstance(gamma, np.ndarray):
+        #     if np.any(gamma < 1.0):
+        #         raise ValueError("Lorentz boost can't be smaller than 1.")
+        # else:
+        #     if gamma < 1.0:
+        #         raise ValueError("Lorentz boost can't be smaller than 1.")
         # lorentz boost
         return self.tau * gamma
 
@@ -65,7 +66,7 @@ class LLPModel():
         # integrate decay pdf from l1 to l2
         prob = np.exp(-l1/c_gamma_tau) - np.exp(-l2/c_gamma_tau)
         # check that we have physical lengths and energies
-        bad_events = (l1 >= l2) | (l1 < 0) | (l2 <= 0) | (energy < 0)
+        bad_events = (l1 >= l2) | (l1 < 0) | (l2 <= 0) | (energy < self.mass)
         # set unphysical events to 0
         if isinstance(prob, np.ndarray):
             prob[bad_events] = 0.0
