@@ -131,16 +131,19 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
         # Find distance to entrance and exit from sampling volume
         intersections = self.surface.intersection(track.pos, track.dir)
         # trim for margins
-        start_length = intersections.first + self.entry_margin
-        stop_length  = intersections.second - self.exit_margin
+        start_length = intersections.second + self.entry_margin
+        stop_length  = intersections.first - self.exit_margin
+        print(start_length, stop_length)
         # check for available space
         if start_length - stop_length <= self.min_gap:
             ID_probability_map = self._zero_prob_map # if no available space, return zero prob
         else:
             # create ordered length and energy lists for LLPEstimator
+            # @TODO: fix
             length_list   = np.linspace(start_length, stop_length, self.n_steps)
             energy_list   = [track.get_energy(l) for l in length_list]
-            print(energy_list)
+            length_list   = length_list - (stop_length - start_length) # start at 0
+            print("E:", energy_list, "\n L:", length_list)
             ID_probability_map = dataclasses.I3MapStringDouble(
                 self.LLPEstimator.calc_llp_probability_with_id(length_list, energy_list)
             ) # calculate
