@@ -54,8 +54,11 @@ class LLPEstimator():
         energy_array = np.asarray(energy_list)       # GeV
         track_length = length_array[-1]              # from entry to exit of detector
 
-        # trim if muon stops
-        good_points = np.where(energy_array != 0)
+        # trim if muon stops (energy is zero)
+        good_points = np.where(energy_array > 0)
+        # if only zero muon energy
+        if np.all(good_points == False):
+            return np.zeros(len(self.llpmodels))
         length_array = length_array[good_points]
         energy_array = energy_array[good_points]
 
