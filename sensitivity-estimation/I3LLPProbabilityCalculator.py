@@ -142,7 +142,7 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
             energy_list   = [track.get_energy(l) for l in length_list]
             print(energy_list)
             ID_probability_map = dataclasses.I3MapStringDouble(
-                self.LLPEstimator.calc_llp_probability(length_list, energy_list)
+                self.LLPEstimator.calc_llp_probability_with_id(length_list, energy_list)
             ) # calculate
         return ID_probability_map
 
