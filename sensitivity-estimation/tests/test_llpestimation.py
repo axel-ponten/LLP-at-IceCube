@@ -147,9 +147,25 @@ def test_llpestimator():
     print(probabilities)
     assert np.all([probabilities[i] > probabilities[i+1] for i in range(len(probabilities) - 1)]) 
 
+    print("test good muon")
     steps = 100
     length_list = np.linspace(0,800,steps)
     energy_list = np.linspace(1000,700,steps)
+
+    # check all probabilties 
+    probabilities = est.calc_llp_probability(length_list, energy_list)
+    probabilities_map = est.calc_llp_probability_with_id(length_list, energy_list)
+    print(probabilities)
+    print(probabilities_map)
+    assert np.all(probabilities >= 0.0)
+
+    print("test stopping muon")
+    steps = 100
+    length_list = np.linspace(0,800,steps)
+    energy_list = np.zeros(steps)
+    energy_list[:steps//2] = np.linspace(500,0,steps//2)
+    energy_list[steps//2] = 0.001 # smaller than mass but not zero
+    print(energy_list)
 
     # check all probabilties 
     probabilities = est.calc_llp_probability(length_list, energy_list)
