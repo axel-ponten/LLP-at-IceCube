@@ -38,6 +38,7 @@ class LLPModel():
         :param gamma: Lorentz boost of the LLP. Given by E/m.
         :return float: Lifetime of the LLP in lab frame.
         """
+        # @TODO: maybe fix this so that we don't stop execution for gamma < 1
         # check for physical gamma
         if isinstance(gamma, np.ndarray):
             if np.any(gamma < 1.0):
@@ -48,7 +49,7 @@ class LLPModel():
         # lorentz boost
         return self.tau * gamma
 
-    def decay_factor(self, l1: np.ndarray[float], l2: np.ndarray[float], energy: np.ndarray[float]) -> np.ndarray[float]:
+    def decay_factor(self, l1, l2, energy):
         """
         Probability to decay between lengths l1 and l2.
 
@@ -61,11 +62,11 @@ class LLPModel():
         :return float: Between 0-1. Fraction of the decay pdf within length l1 and l2.
         """
         # decay length
-        c_gamma_tau = 29979245800.0 * self.get_lifetime(energy/self.mass) # c [cm/s] * gamma * tau
+        c_gamma_tau = 29979245800.0 * self.get_lifetime(energy/self.mass + 1.0) # c [cm/s] * gamma * tau
         # integrate decay pdf from l1 to l2
         prob = np.exp(-l1/c_gamma_tau) - np.exp(-l2/c_gamma_tau)
         # check that we have physical lengths and energies
-        bad_events = (l1 >= l2) | (l1 < 0) | (l2 <= 0) | (energy < 0)
+        bad_events = (l1 >= l2) | (l1 < 0) | (l2 <= 0) | (energy < self.mass)
         # set unphysical events to 0
         if isinstance(prob, np.ndarray):
             prob[bad_events] = 0.0

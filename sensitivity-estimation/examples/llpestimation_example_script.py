@@ -1,6 +1,9 @@
 """
 Simple example application of llpestimation package.
 """
+import sys
+sys.path.append("..")
+
 from llpestimation import LLPModel, LLPEstimator, LLPMedium, LLPProductionCrossSection
 from estimation_utilities import *
 import numpy as np
@@ -23,7 +26,7 @@ muons = generate_atmospheric_muons(10)
 masses      = [0.107, 0.110, 0.115, 0.13]
 epsilons    = [5e-6, 5e-6, 5e-6, 5e-6]
 names       = ["DarkLeptonicScalar" for m in masses]
-table_paths = generate_DLS_WW_oxygen_paths(masses)
+table_paths = generate_DLS_WW_oxygen_paths(masses, "../cross_section_tables/")
 models = generate_DLSModels(masses, epsilons, names, table_paths)
 
 # create LLPEstimator
