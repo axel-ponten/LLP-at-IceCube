@@ -62,7 +62,7 @@ class LLPModel():
         :return float: Between 0-1. Fraction of the decay pdf within length l1 and l2.
         """
         # decay length
-        c_gamma_tau = 29979245800.0 * self.get_lifetime(energy/self.mass) # c [cm/s] * gamma * tau
+        c_gamma_tau = 29979245800.0 * self.get_lifetime(energy/self.mass + 1.0) # c [cm/s] * gamma * tau
         # integrate decay pdf from l1 to l2
         prob = np.exp(-l1/c_gamma_tau) - np.exp(-l2/c_gamma_tau)
         # check that we have physical lengths and energies
