@@ -46,6 +46,6 @@ tray.Add(I3LLPProbabilityCalculator,
          llp_estimator = DLS_estimator,
          n_steps = n_steps
 )
-tray.Add(print_LLPInfo, Streams=[icecube.icetray.I3Frame.DAQ])
-
+#tray.Add(print_LLPInfo, Streams=[icecube.icetray.I3Frame.DAQ])
+tray.Add("I3Writer", filename="I3ProbabilityCalculator_test_output.i3.gz")
 tray.Execute()
