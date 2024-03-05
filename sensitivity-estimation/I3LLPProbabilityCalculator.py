@@ -63,6 +63,11 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
 
         self.LLPEstimator = None
         self.AddParameter("llp_estimator", "LLPEstimator object.", self.LLPEstimator)
+        
+        # for testing purposes
+        self.n_good_muons  = 0
+        self.n_single_mu = 0
+        self.n_events    = 0
 
     def Configure(self):
         self.min_gap      = self.GetParameter("min_gap")
@@ -97,17 +102,18 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
 
         Only single muons have detectable gaps, so bundles get 0 probability.
         """
-        # @TODO: what if muon stops before exiting detector? maybe its fine cus track.get_energy gives zero?
+        # get all leptons of the event
         track_list = MuonGun.Track.harvest(frame['SignalI3MCTree'], frame['MMCTrackList'])
         # only single muons are detectable LLP candidates
         if self.check_single_muon(track_list):
+            self.n_single_mu += 1
             track = track_list[0]
             ID_probability_map = self.calc_LLP_probability_from_muon(track) # llp prob for single muon
         else:
             ID_probability_map = self._zero_prob_map # if muon bundle, return zero prob
         # write I3MapStringDouble to frame
         frame["LLPProbabilities"] = ID_probability_map
-
+        self.n_events += 1 # how many events?
         self.PushFrame(frame)
 
     def check_single_muon(self, track_list):
@@ -128,27 +134,50 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
         Creates a list of lengths and muon energies inside the detector that
         represents the muon track. Pass this to LLPEstimator.
         """
+        # represent single muon track as list of lengths and energies
+        length_list, energy_list = self.single_muon_length_energy(track)
+        # good track? enough available space for track gap etc.
+        if length_list is None:
+            return self._zero_prob_map # zero probability for all models
+        # calculate using llpestimation package
+        llp_id_prob_dict = self.LLPEstimator.calc_llp_probability_with_id(length_list, energy_list)
+        # convert dictionary to I3Map
+        i3_prob_map = dataclasses.I3MapStringDouble(llp_id_prob_dict)
+        self.n_good_muons += 1
+        return i3_prob_map
+
+    def single_muon_length_energy(self, track):
+        """ Returns two ordered lists of energies and lengths
+        along the muon track. Trimmed for entry/exit margins.
+
+        Length list goes from 0 to total track length. Energy
+        list is muon energy at each length step.
+
+        :param track: I3MCTrack from single muon.
+        :return tuple: Ordered list/array of lengths, energies.
+        """
         # Find distance to entrance and exit from sampling volume
         intersections = self.surface.intersection(track.pos, track.dir)
         # trim for margins
-        start_length = intersections.second + self.entry_margin
-        stop_length  = intersections.first - self.exit_margin
-        print(start_length, stop_length)
+        start_length = intersections.first + self.entry_margin
+        stop_length  = intersections.second - self.exit_margin
         # check for available space
-        if start_length - stop_length <= self.min_gap:
-            ID_probability_map = self._zero_prob_map # if no available space, return zero prob
+        if stop_length - start_length <= self.min_gap:
+            length_list = None # if no available space, return None
+            energy_list = None
         else:
-            # create ordered length and energy lists for LLPEstimator
-            # @TODO: fix
+            # what is energy along the track length steps?
             length_list   = np.linspace(start_length, stop_length, self.n_steps)
-            energy_list   = [track.get_energy(l) for l in length_list]
-            length_list   = length_list - (stop_length - start_length) # start at 0
-            print("E:", energy_list, "\n L:", length_list)
-            ID_probability_map = dataclasses.I3MapStringDouble(
-                self.LLPEstimator.calc_llp_probability_with_id(length_list, energy_list)
-            ) # calculate
-            print(ID_probability_map)
-        return ID_probability_map
+            energy_list   = np.array([track.get_energy(l) for l in length_list])
+            length_list   = length_list - start_length # normalize start to 0
+        # @TODO: I3logging debug message of energies and lengths here
+        return length_list, energy_list
 
     def Finish(self):
-        pass
+        # print statistics of good sinlge muons
+        print("Tot events:", self.n_events)
+        print("Single muons:", self.n_single_mu)
+        print("Good llp muons:", self.n_good_muons)
+        print("Fraction single muons:", self.n_single_mu/self.n_events*1.0)
+        print("Fraction good muons:", self.n_good_muons/self.n_events*1.0)
+        print("Fraction good muons to single muons:", self.n_good_muons/self.n_single_mu*1.0)
