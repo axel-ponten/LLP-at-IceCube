@@ -10,6 +10,8 @@ sys.path.append("..")
 
 import glob
 import argparse
+import numpy as np
+from itertools import product
 
 import icecube
 from icecube import icetray, dataio, hdfwriter
@@ -30,7 +32,7 @@ parser.add_argument("-n", "--nfiles", action="store",
 
 params = vars(parser.parse_args())  # dict()
 outputfile = params["outputfile"] + "_" + str(params["nfiles"]) + "_files.hdf5"
-
+print(outputfile)
 # infiles
 filelist = list(glob.glob("/data/sim/IceCube/2020/generated/CORSIKA-in-ice/20904/0198000-0198999/detector/IC86.2020_corsika.020904.198*.i3.zst"),)
 n_files = 1 # how many files to use?
@@ -39,8 +41,12 @@ print("Number of CORSIKA files used:", len(filelist))
 gcdfile = "/data/user/axelpo/LLP-at-IceCube/dark-leptonic-scalar-simulation/resources/GeoCalibDetectorStatus_2021.Run135903.T00S1.Pass2_V1b_Snow211115.i3.gz"
 
 # create LLP models
-masses   = [0.115, 0.115, 0.13, 0.13]
-epsilons = [5e-6, 1e-5, 5e-6, 1e-5]
+masses = [0.107, 0.108, 0.109, 0.110, 0.112, 0.115, 0.117, 0.120, 0.122, 0.125, 0.127, 0.130, 0.134, 0.138, 0.145, 0.15]
+epsilons = np.logspace(-4, -7, 15)
+combinations = list(product(masses, epsilons)) # create grid
+masses   = [item[0] for item in combinations] # flatten
+epsilons = [item[1] for item in combinations] # flatten
+print(masses, epsilons)
 names    = ["DLS" for _ in masses]
 table_paths = generate_DLS_WW_oxygen_paths(masses, folder = "../cross_section_tables/")
 DLS_models = generate_DLSModels(masses, epsilons, names, table_paths)
@@ -71,6 +77,6 @@ tray.Add(I3LLPProbabilityCalculator,
 tray.Add(
     hdfwriter.I3SimHDFWriter,
     keys=keys,
-    output=params["outputfile"],
+    output=outputfile,
 )
 tray.Execute()
