@@ -1,3 +1,10 @@
+""" Compute detectable LLP probabilites for a model grid on a CORSIKA muon spectrum.
+Reads in a number of CORSIKA-in-ice files, computes event-by-event LLP probability
+for each mass/eps point in the grid, and saves to .hdf5 file.
+
+Uses CORSIKA files from:
+/data/sim/IceCube/2020/generated/CORSIKA-in-ice/20904/0198000-0198999/detector/
+"""
 import sys
 sys.path.append("..")
 
@@ -15,10 +22,14 @@ from estimation_utilities import *
 # Get params from parser
 parser = argparse.ArgumentParser(description="create hdf files from corsika")
 parser.add_argument("-o", "--outputfile", action="store",
-        type=str, default="", dest="outputfile",
-        help="Input .i3 file with LLPProbabilities frame object.")
+        type=str, default="corsika_to_grid", dest="outputfile",
+        help="Name of final .hdf5 file. Don't include extension")
+parser.add_argument("-n", "--nfiles", action="store",
+        type=int, dest="nfiles", required = True,
+        help="Number of CORSIKA files used to create hdf5 file.")
 
 params = vars(parser.parse_args())  # dict()
+outputfile = params["outputfile"] + "_" + str(params["nfiles"]) + "_files.hdf5"
 
 # infiles
 filelist = list(glob.glob("/data/sim/IceCube/2020/generated/CORSIKA-in-ice/20904/0198000-0198999/detector/IC86.2020_corsika.020904.198*.i3.zst"),)
@@ -41,7 +52,7 @@ DLS_estimator = LLPEstimator(DLS_models, min_gap)
 # detector parameters
 n_steps = 50
 
-# icetray paramters
+# which frame objects to save to hdf5 file
 keys = ["LLPProbabilities",
         "MMCTrackList",
         "CorsikaWeightMap",
@@ -57,7 +68,6 @@ tray.Add(I3LLPProbabilityCalculator,
          llp_estimator = DLS_estimator,
          n_steps = n_steps
 )
-#tray.Add(print_LLPInfo, Streams=[icecube.icetray.I3Frame.DAQ])
 tray.Add(
     hdfwriter.I3SimHDFWriter,
     keys=keys,

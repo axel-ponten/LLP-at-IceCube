@@ -1,6 +1,7 @@
 """ Script to plot an llpestimation grid.
     Input file should be a .hdf5 file from CORSIKA simulation
     that has been run through the I3LLPProbabilityCalculator module.
+    For example the output of compute_grid_to_hdf.py.
     
     Need to input how man CORSIKA files were used for weighting purposes.
     
@@ -89,9 +90,9 @@ cbar = plt.colorbar(sc)
 cbar.set_label("Log10 expected signal")
 plt.yscale("log")
 
-plt.title("Expected detectable LLPs in {:.1} year(s)".format(params["years"]))
-plt.ylabel(r'$\epsilon$')
-plt.xlabel(r'$m_\varphi$' + " [GeV]")
+plt.title("Expected detectable LLPs in {:.1f} year(s)".format(params["years"]))
+plt.ylabel(r'$\epsilon$', fontsize=13)
+plt.xlabel(r'$m_\varphi$' + " [GeV]", fontsize=13)
 
 # save grid plot
-plt.savefig(params["outfile"])
+plt.savefig(params["outfile"], bbox_inches="tight")
