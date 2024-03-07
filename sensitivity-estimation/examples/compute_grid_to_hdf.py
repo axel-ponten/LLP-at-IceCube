@@ -41,8 +41,8 @@ print("Number of CORSIKA files used:", len(filelist))
 gcdfile = "/data/user/axelpo/LLP-at-IceCube/dark-leptonic-scalar-simulation/resources/GeoCalibDetectorStatus_2021.Run135903.T00S1.Pass2_V1b_Snow211115.i3.gz"
 
 # create LLP models
-masses = [0.107, 0.108, 0.109, 0.110, 0.112, 0.115, 0.117, 0.120, 0.122, 0.125, 0.127, 0.130, 0.134, 0.138, 0.145, 0.15]
-epsilons = np.logspace(-4, -7, 15)
+masses = [0.107, 0.108, 0.109, 0.110, 0.11, 0.112, 0.113, 0.114, 0.115, 0.116, 0.117, 0.118, 0.119, 0.120, 0.121, 0.122, 0.123, 0.124, 0.125, 0.127, 0.130, 0.134, 0.138, 0.145, 0.15]
+epsilons = np.logspace(-2.5, -6.3, 40)
 combinations = list(product(masses, epsilons)) # create grid
 masses   = [item[0] for item in combinations] # flatten
 epsilons = [item[1] for item in combinations] # flatten
