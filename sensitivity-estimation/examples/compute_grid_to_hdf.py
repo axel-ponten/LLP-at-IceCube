@@ -42,7 +42,11 @@ DLS_estimator = LLPEstimator(DLS_models, min_gap)
 n_steps = 50
 
 # icetray paramters
-keys = ["LLPProbabilities", "MMCTrackList"]
+keys = ["LLPProbabilities",
+        "MMCTrackList",
+        "CorsikaWeightMap",
+        "PolyplopiaPrimary",
+       ]
 
 ########## Run I3Tray ##########
 tray = I3Tray()
