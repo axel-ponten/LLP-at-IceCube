@@ -39,7 +39,6 @@ parser.add_argument("-m", "--min-events", action="store",
         type=float, default = None, dest="min-events", required = False,
         help="Minimum # of detectable events to be plotted.")
 
-
 params = vars(parser.parse_args())  # dict()
 
 # load the hdf5 file that we just created using pandas
@@ -89,7 +88,7 @@ for model_id in model_ids:
 ####### PLOT GRID #######
 fig, ax = plt.subplots()
 
-sc = plt.scatter(masses, epsilons, c=np.log10(signals), cmap = 'bwr')
+sc = plt.scatter(masses, epsilons, c=np.log10(signals), cmap = 'viridis')
 cbar = plt.colorbar(sc)
 cbar.set_label("Log10 expected signal")
 plt.yscale("log")
