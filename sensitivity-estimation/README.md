@@ -9,14 +9,12 @@ IceCube measures particles through their Cherenkov radiation in the ice. LLPs ar
 
 ## What does the package ***llpestimation*** do?
 
-The package's main class ***llpestimator*** computes the probability for a given atmospheric muon (represented by its energy along a list of length steps through the detector) to produce an LLP which has both production and decay vertex inside the detector. It does so for a list of LLP models that are defined by their name, mass, coupling, lifetime and production cross section (generated from interpolation tables). The production rate depends on the medium in which the muon travels, particularly the number density of nuclei on which the bremstrahlung-like production scattering takes place.
-
-Accompanying the package is a *estimation_utilities.py* script that helps implement particular LLP models like the dark leptonic scalar, to be used with the LLPEstimator.
+The package's main class ***LLPEstimator*** computes the probability for a given atmospheric muon (represented by its energy along a list of length steps through the detector) to produce an LLP which has both production and decay vertex inside the detector. It does so for a list of LLP models that are defined by their name, mass, coupling, lifetime and production cross section (generated from interpolation tables). The production rate depends on the medium in which the muon travels, particularly the number density of nuclei on which the bremstrahlung-like production scattering takes place.
 
 An example script is provided in the *examples* folder named *llpestimation_example_script.py*. Run it like `python llpestimation_example_script.py`.
 
 #### How does it calculate event expectation rate?
-The expected number of events is calculated using a segmented thin target approximation, convolved with a decay factor representing the probability for the produced LLP to decay within the detector volume.
+The expected number of events is calculated using a segmented thin target approximation, convolved with a decay factor representing the probability for the produced LLP to decay within the detector volume. A visualization of the process can be found in `resources/Detectable LLP event.pdf`
 
 The thin target approximation is in its general form
 
@@ -29,10 +27,11 @@ with $dx$ some short length segment, $n$ the number density of scatterers, and $
 Since we have energy loss of the muon travelling through the ice, we segment the thin target approximation and sum contributions from small steps along the muon track. At each step, if an LLP is produced, it must also decay after some minimum reconstructable gap $l_{min}$ but before the end of the detector $l_{max}$. We must also consider contribution from both oxygen and hydrogen. The final formula for probability of an LLP to be produced and decay within the detector volume is then given by
 
 $$
-P_{LLP} = \Sigma_{i}^{steps} f_{decay}(E_i) \; \Delta{L} \; \Sigma_{j}^{O, H} \; \sigma_{j}(E_i) \cdot n_j
+P_{LLP} = \Sigma_{i}^{steps} \left[ f_{decay}(E_i) \Delta{L} \cdot \Sigma_{j}^{O, H} \left[ \sigma_{j}(E_i) \cdot n_j \right]  \right]
 $$
 
 where $E_i$ is the energy of the muon at step *i*, $\Delta L$ the step length of the segmentation, $n_j$ the number density of element *j*, and 
+
 $$
 f_{decay}(E_i) = e^{\frac{-l_{min}}{c \gamma \tau}} - e^{\frac{-l_{max}}{c \gamma \tau}}
 $$
@@ -69,6 +68,8 @@ table_paths = ["cross_section_tables/totcs_WW_m_0.115.csv", "cross_section_table
 # create LLPModels
 my_model_list = generate_DLSModels(masses, epsilons, names, table_paths)
 ```
+#### Utility functions
+Accompanying the package is a *estimation_utilities.py* script that helps implement particular LLP models like the dark leptonic scalar, to be used with the LLPEstimator.
 
 #### Tests and profiling of ***llpestimator*** package
 In tests folder, there is a test script that you can run with the command line prompt *py.test* and a profiling script that you can run like `python profile_llpestimation.py` (useful for checking bottleneck in calculation).
@@ -82,7 +83,7 @@ This can be run like
 python compute_grid_to_hdf.py -o test_grid_5_files.hdf5 -n 5
 python plot_grid.py -i test_grid_5_files.hdf5 -n 5 -o grid_plot.png -y 10
 ```
+The number of CORSIKA files used is necessary for the weighting of the events.
 
 ## Cross section tables
-To avoid calculating the exact total cross section for each event, we use interpolation tables to improve the speed of the computation. Since the coupling of the LLP scales the total cross section by $\sigma \rightarrow \epsilon^2 \sigma$ we only compute the tables for $\epsilon = 1$, and then the user can scale the values accordingly before interpolating the points.
-
+To avoid calculating the exact total cross section for each event, we use interpolation tables to improve the speed of the computation. Since the coupling of the LLP scales the total cross section by $\sigma \rightarrow \epsilon^2 \sigma$ we only compute the tables for $\epsilon = 1$, and then the user can scale the values accordingly before interpolating the points. These tables are produced through mathematica notebooks containing cross section formulas.
