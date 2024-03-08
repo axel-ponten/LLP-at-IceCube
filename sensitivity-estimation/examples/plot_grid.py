@@ -35,6 +35,9 @@ parser.add_argument("-y", "--years", action="store",
 parser.add_argument("-v", "--verbose", action="store_true",
         default = False, dest="verbose", required = False,
         help="Print info for each grid point.")
+parser.add_argument("-m", "--min-events", action="store",
+        type=float, default = None, dest="min-events", required = False,
+        help="Minimum # of detectable events to be plotted.")
 
 params = vars(parser.parse_args())  # dict()
 
@@ -62,15 +65,19 @@ def get_mass_eps_from_id(llp_unique_id: str):
     model = LLPModel.from_unique_id(llp_unique_id)
     return model.mass, model.eps
 
+livetime  = params["years"]*3.1536e7 # convert to seconds
 masses   = []
 epsilons = []
-llprates = []
+signals = []
 for model_id in model_ids:
     mass, eps = get_mass_eps_from_id(model_id)
-    masses.append(mass)
-    epsilons.append(eps)
     weighted_rate = llp_prob[model_id].dot(weights)
-    llprates.append(weighted_rate)
+    signal = livetime*weighted_rate
+    # check if we save the grid point for plotting
+    if (params["min-events"] is None) or (signal >= params["min-events"]):
+        masses.append(mass)
+        epsilons.append(eps)
+        signals.append(signal)
     if params["verbose"]:
         print(model_id)
         print("Raw llp probs.", llp_prob[model_id])
@@ -79,13 +86,9 @@ for model_id in model_ids:
 
 
 ####### PLOT GRID #######
-# @TODO: fix that yaxis cut off in plot
-livetime  = params["years"]*3.1536e7 # convert to seconds
-signals = [livetime*r for r in llprates]
-
 fig, ax = plt.subplots()
 
-sc = plt.scatter(masses, epsilons, c=np.log10(signals), cmap = 'bwr')
+sc = plt.scatter(masses, epsilons, c=np.log10(signals), cmap = 'viridis')
 cbar = plt.colorbar(sc)
 cbar.set_label("Log10 expected signal")
 plt.yscale("log")

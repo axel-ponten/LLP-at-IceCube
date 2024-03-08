@@ -1,0 +1,23 @@
+# sensitivtiy estimate configuration
+# file config
+
+---
+gcd     :  "/data/user/axelpo/LLP-at-IceCube/dark-leptonic-scalar-simulation/resources/GeoCalibDetectorStatus_2021.Run135903.T00S1.Pass2_V1b_Snow211115.i3.gz"
+topdir : "/data/sim/IceCube/2020/generated/CORSIKA-in-ice/20904/0198000-0198999/detector/IC86.2020_corsika.020904.198*.i3.zst"
+xsectables  : '../cross_section_tables/'
+
+# llp config
+models:
+  DarkLeptonicScalar:
+    masses:
+      - 0.115
+      - 0.115
+      - 0.13
+      - 0.13
+    epsilons:
+      - 5e-6
+      - 1e-5
+      - 5e-6
+      - 1e-5
+      - 1e-5
+    mingap: 50.0 #meters
