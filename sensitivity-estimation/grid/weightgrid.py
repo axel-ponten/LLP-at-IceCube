@@ -32,6 +32,10 @@ def get_mass_eps_from_id(llp_unique_id: str):
     model = LLPModel.from_unique_id(llp_unique_id)
     return model.mass, model.eps
 
+def get_name_from_id(llp_unique_id: str):
+    model = LLPModel.from_unique_id(llp_unique_id)
+    return model.name
+
 def weighted_grid_llp_rate(hdffile, weights):
     """ Total weighted llp rate for some grid.
     """
