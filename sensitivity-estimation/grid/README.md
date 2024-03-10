@@ -14,7 +14,7 @@ python compute_grid_to_hdf.py -n 10 -o files/llp_rates_grid
 Using **simweights** (https://github.com/icecube/simweights) one can weight the event by event llp probabilities. Need number of CORSIKA files used in creation for proper weighting. Create a .csv with rows (mass, eps, llp_rate, LLPModel_unique_id) using
 
 ```
-python grid_to_csv.py -i files/llp_rates_grid_10_files.hdf5 -n 10 -o llp_rates_grid.csv
+python grid_to_csv.py -i files/llp_rates_grid_10_files.hdf5 -n 10 -o files/llp_rates_grid.csv
 ```
 
 ## Plot the grid
