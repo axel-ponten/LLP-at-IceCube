@@ -26,15 +26,9 @@ parser.add_argument("-i", "--inputfile", action="store", required = True,
 parser.add_argument("-o", "--outfile", action="store",
         type=str, default="grid_plot.png", dest="outfile",
         help="Name of plot output.")
-parser.add_argument("-n", "--nfiles", action="store",
-        type=int, dest="nfiles", required = True,
-        help="Number of CORSIKA files used to create hdf5 file.")
 parser.add_argument("-y", "--years", action="store",
         type=float, default = 1.0, dest="years", required = False,
         help="How many years of livetime to multiply llp rate by? Default 1.")
-parser.add_argument("-v", "--verbose", action="store_true",
-        default = False, dest="verbose", required = False,
-        help="Print info for each grid point.")
 parser.add_argument("-m", "--min-events", action="store",
         type=float, default = None, dest="min-events", required = False,
         help="Minimum # of detectable events to be plotted.")
@@ -42,20 +36,19 @@ parser.add_argument("-m", "--min-events", action="store",
 params = vars(parser.parse_args())  # dict()
 
 ####### OPEN FILE #######
-hdffile, weights = wg.weight_CORSIKA_hdf5(params["inputfile"], params["nfiles"])
+df = pd.read_csv(params["inputfile"])
+# remove zero signal points
+df = df[df["llp_rate"] > 0]
 
-####### WEIGHT GRID #######
-masses, epsilons, llp_rates, model_ids = wg.weighted_grid_llp_rate(hdffile, weights)
-livetime = params["years"]*3.1536e7 # convert to seconds
-signals = [livetime*r for r in llp_rates] # expected n of signals
+####### GET GRID #######
+masses   = df["mass"]
+epsilons = df["epsilon"]
+livetime = params["years"]*3.1536e7 # convert years to seconds
+signals  = [livetime*r for r in df["llp_rate"]] # expected n of signals
 
 # remove signals < min_events
 if params["min-events"] is not None:
     masses, epsilons, signals = wg.clean_min_events(masses, epsilons, signals, params["min-events"])
-
-# print info on each grid point
-if params["verbose"]:
-    wg.print_verbose(hdffile, weights)
 
 ####### PLOT GRID #######
 fig, ax = plt.subplots()
@@ -65,10 +58,12 @@ cbar = plt.colorbar(sc)
 cbar.set_label("Log10 expected signal")
 plt.yscale("log")
 
-modelname = wg.get_name_from_id(model_ids[0]) # for plot title
+modelname = wg.get_name_from_id(df["LLPModel_unique_id"][0]) # for plot title
 plt.title("Expected detectable " + modelname + " events in {:.1f} year(s)".format(params["years"]))
 plt.ylabel(r'$\epsilon$', fontsize=13)
 plt.xlabel(r'$m_\varphi$' + " [GeV]", fontsize=13)
+# plt.xlim([0.105, 0.150])
+# plt.ylim([1e-6, 1e-2])
 
 # save grid plot
 plt.savefig(params["outfile"], bbox_inches="tight")
