@@ -75,15 +75,17 @@ Accompanying the package is a *estimation_utilities.py* script that helps implem
 In tests folder, there is a test script that you can run with the command line prompt *py.test* and a profiling script that you can run like `python profile_llpestimation.py` (useful for checking bottleneck in calculation).
 
 ## Grid calculation
-In the *examples* directory there are two python scripts to run I3LLPProbabilityCalculator on some CORSIKA-in-ice simulation for a mass/epsilon grid of LLPModels, and then plot the resulting rates.
+In the *grid* directory there are two python scripts to run I3LLPProbabilityCalculator on some CORSIKA-in-ice simulation for a mass/epsilon grid of LLPModels, and then plot the resulting rates.
 
 This can be run like
 
 ```
-python compute_grid_to_hdf.py -o test_grid_5_files.hdf5 -n 5
+python compute_grid_to_hdf.py -o test_grid -n 5
 python plot_grid.py -i test_grid_5_files.hdf5 -n 5 -o grid_plot.png -y 10
 ```
 The number of CORSIKA files used is necessary for the weighting of the events.
+
+There is also a script to save the LLP rates to csv `grid_to_csv.py`, which can then be loaded for plotting using `plot_grid_from_csv.py`.
 
 ## Cross section tables
 To avoid calculating the exact total cross section for each event, we use interpolation tables to improve the speed of the computation. Since the coupling of the LLP scales the total cross section by $\sigma \rightarrow \epsilon^2 \sigma$ we only compute the tables for $\epsilon = 1$, and then the user can scale the values accordingly before interpolating the points. These tables are produced through mathematica notebooks containing cross section formulas.
