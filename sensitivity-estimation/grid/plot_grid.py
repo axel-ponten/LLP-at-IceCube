@@ -13,10 +13,10 @@ sys.path.append("..")
 import pandas as pd
 import matplotlib.pyplot as plt
 import argparse
+import numpy as np
 
-from llpestimation import LLPModel, LLPEstimator, LLPMedium, LLPProductionCrossSection
-from estimation_utilities import *
 import simweights
+import weightgrid as wg # custom script in same directory
 
 # Get params from parser
 parser = argparse.ArgumentParser(description="create plots from hdf files")
@@ -41,49 +41,21 @@ parser.add_argument("-m", "--min-events", action="store",
 
 params = vars(parser.parse_args())  # dict()
 
-# load the hdf5 file that we just created using pandas
-hdffile = pd.HDFStore(params["inputfile"], "r")
-nfiles = params["nfiles"]
+####### OPEN FILE #######
+hdffile, weights = wg.weight_CORSIKA_hdf5(params["inputfile"], params["nfiles"])
 
-# instantiate the weighter object by passing the pandas file to it
-weighter = simweights.CorsikaWeighter(hdffile, nfiles = nfiles)
+####### WEIGHT GRID #######
+masses, epsilons, llp_rates, model_ids = wg.weighted_grid_llp_rate(hdffile, weights)
+livetime = params["years"]*3.1536e7 # convert to seconds
+signals = [livetime*r for r in llp_rates] # expected n of signals
 
-# create an object to represent our cosmic-ray primary flux model
-flux = simweights.GaisserH4a()
+# remove signals < min_events
+if params["min-events"] is not None:
+    masses, epsilons, signals = wg.clean_min_events(masses, epsilons, signals, params["min-events"])
 
-# get the weights by passing the flux to the weighter
-weights = weighter.get_weights(flux)
-
-# print some info about the weighting object
-print(weighter.tostring(flux))
-
-####### READ IN GRID #######
-llp_prob = hdffile.select("LLPProbabilities")
-model_ids = llp_prob.keys()[5:] # SKIP first five, like EventID and RunID
-
-def get_mass_eps_from_id(llp_unique_id: str):
-    model = LLPModel.from_unique_id(llp_unique_id)
-    return model.mass, model.eps
-
-livetime  = params["years"]*3.1536e7 # convert to seconds
-masses   = []
-epsilons = []
-signals = []
-for model_id in model_ids:
-    mass, eps = get_mass_eps_from_id(model_id)
-    weighted_rate = llp_prob[model_id].dot(weights)
-    signal = livetime*weighted_rate
-    # check if we save the grid point for plotting
-    if (params["min-events"] is None) or (signal >= params["min-events"]):
-        masses.append(mass)
-        epsilons.append(eps)
-        signals.append(signal)
-    if params["verbose"]:
-        print(model_id)
-        print("Raw llp probs.", llp_prob[model_id])
-        print("Sum of llp probs", llp_prob[model_id].sum())
-        print("Weighted llp rate", weighted_rate)
-
+# print info on each grid point
+if params["verbose"]:
+    wg.print_verbose(hdffile, weights)
 
 ####### PLOT GRID #######
 fig, ax = plt.subplots()
