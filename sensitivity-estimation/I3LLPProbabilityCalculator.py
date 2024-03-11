@@ -64,6 +64,10 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
         self.LLPEstimator = None
         self.AddParameter("llp_estimator", "LLPEstimator object.", self.LLPEstimator)
         
+        # some trees are named SignalI3MCTree, some I3MCTree
+        self.mctree_name = "SignalI3MCTree"
+        self.AddParameter("mctree_name", "I3MCTree name", self.mctree_name)
+        
         # for testing purposes
         self.n_good_muons  = 0
         self.n_single_mu = 0
@@ -76,6 +80,7 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
         self.n_steps      = self.GetParameter("n_steps")
         self.LLPEstimator = self.GetParameter("llp_estimator")
         self.padding      = self.GetParameter("padding")
+        self.mctree_name  = self.GetParameter("mctree_name")
         # create surface for detector volume
         self.gcdFile = self.GetParameter("GCDFile")
         if self.gcdFile != "":
@@ -102,8 +107,12 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
 
         Only single muons have detectable gaps, so bundles get 0 probability.
         """
+        self.n_events += 1 # how many events?
+        if "MMCTrackList" not in frame:
+            frame["MMCTrackList"] = icecube.simclasses.I3MMCTrackList()
+        
         # get all leptons of the event
-        track_list = MuonGun.Track.harvest(frame['SignalI3MCTree'], frame['MMCTrackList'])
+        track_list = MuonGun.Track.harvest(frame[self.mctree_name], frame['MMCTrackList'])
         # only single muons are detectable LLP candidates
         if self.check_single_muon(track_list):
             self.n_single_mu += 1
@@ -113,7 +122,6 @@ class I3LLPProbabilityCalculator(icetray.I3Module):
             ID_probability_map = self._zero_prob_map # if muon bundle, return zero prob
         # write I3MapStringDouble to frame
         frame["LLPProbabilities"] = ID_probability_map
-        self.n_events += 1 # how many events?
         self.PushFrame(frame)
 
     def check_single_muon(self, track_list):
