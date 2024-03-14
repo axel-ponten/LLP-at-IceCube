@@ -32,7 +32,9 @@ parser.add_argument("-y", "--years", action="store",
 parser.add_argument("-m", "--min-events", action="store",
         type=float, default = None, dest="min-events", required = False,
         help="Minimum # of detectable events to be plotted.")
-
+parser.add_argument("-t", "--title", action="store",
+        type=str, default = None, dest="title", required = False,
+        help="Plot title.")
 params = vars(parser.parse_args())  # dict()
 
 ####### OPEN FILE #######
@@ -59,11 +61,14 @@ cbar.set_label("Log10 expected signal")
 plt.yscale("log")
 
 modelname = wg.get_name_from_id(df["LLPModel_unique_id"][0]) # for plot title
-plt.title("Expected detectable " + modelname + " events in {:.1f} year(s)".format(params["years"]))
+if params["title"] is None:
+    plt.title("Expected detectable " + modelname + " events in {:.1f} year(s)".format(params["years"]))
+else:
+    plt.title(params["title"])
 plt.ylabel(r'$\epsilon$', fontsize=13)
 plt.xlabel(r'$m_\varphi$' + " [GeV]", fontsize=13)
-# plt.xlim([0.105, 0.150])
-# plt.ylim([1e-6, 1e-2])
+plt.xlim([0.105, 0.150])
+plt.ylim([1e-6, 1e-2])
 
 # save grid plot
 plt.savefig(params["outfile"], bbox_inches="tight")
