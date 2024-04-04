@@ -14,9 +14,8 @@ else:
 from icecube import dataio
 from icecube.ml_suite import EventFeatureFactory
 
-import i3_methods # @TODO: change name
-import feature_configs # @TODO: change name
-
+import i3_methods
+import feature_configs
 
 class Converter(object):
     def __init__(self,
@@ -25,37 +24,38 @@ class Converter(object):
                 encoding_type="mod_harnisch",
                 pulse_series_name="InIcePulses",
                 gcdfile="/data/sim/sim-new/downloads/GCD/GeoCalibDetectorStatus_2021.Run135903.T00S1.Pass2_V1b_Snow211115.i3.gz",
-                num_events_per_file=1000):
-        # create filenames
+                num_events_per_file=1000, # how many events per .pq file
+                num_per_row_group=100, # 100 seems a reasonable size
+                ):
+        # input and output filenames
         self.filenames = filenames
         self.num_files = len(self.filenames)
-        # will hold target .pq filenames (of potentially different sizes than input files)
-        self.target_filenames=[]
-        self.target_folder=target_folder
+        self.target_filenames=[] # output .pq filenames (different sizes than input files)
+        self.target_folder=target_folder # where to save .pq files
+
+        # conversion settings
+        self.encoding_type = encoding_type
+        self.pulse_series_name = pulse_series_name
+        self.num_events_per_file=num_events_per_file
+        self.num_per_row_group=num_per_row_group
+        assert(self.num_events_per_file%self.num_per_row_group==0), (self.num_events_per_file, self.num_per_row_group)
+        self.num_rowgroups=self.num_events_per_file/self.num_per_row_group
 
         # create gcd surface
-        padding = 0.
+        #padding = 0.
         #self._surface = axel_i3_methods.MakeSurface(gcdfile, padding)
         
-        # dictionaries
+        # index dictionary to hold meta info about .pq files
         self.total_index_info=dict()
         self.total_index_info["file_index"]=[]
         self.total_index_info["index_within_file"]=[]
         self.total_index_info["rowgroup_index_within_file"]=[]
         self.total_index_info["event_id"]=[]
         self.total_index_info["run_id"]=[]
-        # self.total_index_info["log10_deposited_energy"]=[]
-        
+
+        # MC weighting info
         self.total_weight_info=dict()
         self.total_weight_info["I3MCWeightDict"]=dict()
-        # initialize conversion variables
-        self.encoding_type = encoding_type
-        self.pulse_series_name = pulse_series_name
-        self.num_events_per_file=num_events_per_file
-        # 100 seems a reasonable size
-        self.num_per_row_group=50 #@TODO: fix this 
-        assert(self.num_events_per_file%self.num_per_row_group==0), (self.num_events_per_file, self.num_per_row_group)
-        self.num_rowgroups=self.num_events_per_file/self.num_per_row_group
 
         # extract geometry and DOM efficienies (rde = relative dom efficieency)
         self.i3_geo, self.geo, self.rde_dict = i3_methods.extract_geometry_n_rdes(gcdfile)
@@ -63,11 +63,11 @@ class Converter(object):
 
         print("####################################")
         print(" Starting Conversion ..... ")
-        #print(" dir: %s" % file_directory)
         print(" encoding type: ", encoding_type)
         print(" pulses: ", self.pulse_series_name)
-        #print(" filter: ", filter_name)
-        #print(" subeventstream: ", subeventstream)
+        print(" gcdfile: ", gcdfile)
+        print(" events per file: ", self.num_events_per_file)
+        print(" target folder: ", self.target_folder)
         print("####################################")
         
         # start conversion from i3 to parquet
@@ -75,17 +75,164 @@ class Converter(object):
 
     def convert_all(self):
         # initiliaze buffer to hold encoded data and labels
-        self._initialize_buffer()
+        self.initialize_buffer()
+
+        # create feature extractor based on encoding type
+        self.feature_extractor, self.feature_indices = self.create_feature_objects()
 
         # buffered reading and conversion i3->pq
         total_num_written, \
         total_num_events_overall, \
-        total_num_files_written = self.extract_into_similar_sized_files()
+        total_num_files_written = self.convert_i3_files()
 
-        # create files needed for re-weighting
-        self.write_aux_files(total_num_written, total_num_events_overall, total_num_files_written)        
+        # create auxiliary files needed for re-weighting
+        self.write_aux_files(total_num_written,
+                            total_num_events_overall,
+                            total_num_files_written)    
 
+    def convert_i3_files(self):
+        """ Main conversion loop.
+        
+        Iterate over all i3 files and fill the buffer.
+        Once buffer is filled, write to .pq file.
+        Buffer might be filled in the middle of an i3 file,
+        but next iteration will continue from the last written event.
+        
+        """
+        # set flags and counters
+        total_num_written=0           # how many events written to pq?
+        self.num_appended=0           # how many events in current buffer?
+        self.cur_write_file_index=0   # which .pq file are we on?
+        self.cur_file_f_counter=0     # which frame in current i3 file?
+        self.cur_file_index=0         # which .i3 file are we on?
+        self.is_first_frame_mc = None # is the first frame MC?
+
+        # create progress bar for iterating through files
+        pbar = tqdm.tqdm(total=self.num_files)
+
+        ####### MAIN LOOP #######
+        # iterate i3 files
+        # @TODO: make this a for loop over self.filenames
+        while(self.cur_file_index<self.num_files):
+            # new .pq file so clear buffer
+            self.clear_buffer()
+            self.num_appended=0
+
+            # fill buffer
+            while( self.num_appended<self.num_events_per_file ) :
+                if(self.cur_file_index>=self.num_files):
+                    break
+
+                print("opening file ... ", self.filenames[self.cur_file_index])
+                f=dataio.I3File(self.filenames[self.cur_file_index])
+                this_file_f_counter = 0
+
+                # go through frames in i3 file
+                while( self.num_appended<self.num_events_per_file and f.more() ):
+                    # @TODO: option for P vs Q frame
+                    try:
+                        frame = f.pop_daq()
+                    except:
+                        print("could not pop frame")
+                        break
+
+                    # check that frame is good
+                    if(not self.check_good_frame(frame)):
+                        print("Bad frame, skip:", frame)
+                        continue
+
+                    this_file_f_counter+=1
+                    # if previous buffer was full before end of i3 file, then start from that point
+                    if(this_file_f_counter>self.cur_file_f_counter):
+                        self.cur_file_f_counter+=1
+                        # fill buffer with event
+                        self.add_event_to_buffer(frame)
+                        self.num_appended += 1
+
+                f.close()
+                print("... closed file .. num appended %d - target max buffer %d" % \
+                      (self.num_appended, self.num_events_per_file))
+                
+                # did we fill the buffer before the i3file was empty?
+                if(self.num_appended==self.num_events_per_file):
+                    print("reached max buffer ..")
+                    print("CUR FILE FRAME COUNTER ", self.cur_file_f_counter)
+                    # break out and fill new buffer from the next frame in this i3 file
+                    break
+                else:
+                    # go to next i3 file and reset frame counter
+                    self.cur_file_index+=1
+                    self.cur_file_f_counter=0
+
+                pbar.update(1)
+
+            # is buffer full?
+            if(self.num_appended==self.num_events_per_file):
+                # save buffer to file
+                self.save_buffer_to_file()
+                self.cur_write_file_index+=1
+                total_num_written+=self.num_appended
+        #################################################
+
+        pbar.close()
+
+        # if excess events, trim the index dictionaries
+        self.trim_dictionaries()
+        
+        print("tot num written", total_num_written)
+        print("tot num + appended ", total_num_written+self.num_appended)
+        print("cur write file index", self.cur_write_file_index)
+
+        return total_num_written, total_num_written+self.num_appended, self.cur_write_file_index
+
+    def add_event_to_buffer(self, frame):
+        # extract pulse data, etc., from frame
+        event_info = i3_methods.obtain_encoded_data(frame, 
+                                                    self.pulse_series_name,
+                                                    self.geo, 
+                                                    self.rde_dict,
+                                                    feature_extractor=self.feature_extractor,
+                                                    feature_indices=self.feature_indices
+                                                    )
+        # unpack return tuple
+        final_data, mean_cog, string_list, om_list, module_type_list, overall_charge, median_times = event_info
+
+        # event info
+        self.buffer["data_encoded"].append(final_data)
+        self.buffer["data_weighted_medians"].append(median_times)
+        self.buffer["data_cog_mean"].append(mean_cog)
+        self.buffer["string_list"].append(string_list)
+        self.buffer["om_list"].append(om_list)
+        self.buffer["module_type_list"].append(module_type_list)
+        self.buffer["totcharge"].append(overall_charge)
+        self.buffer["nch"].append(len(string_list))
+        self.buffer["run_id"].append(frame["I3EventHeader"].run_id)
+        self.buffer["event_id"].append(frame["I3EventHeader"].event_id)
+
+        ## index information
+        self.total_index_info["index_within_file"].append(self.num_appended)
+        self.total_index_info["rowgroup_index_within_file"].append(int(self.num_appended//self.num_per_row_group))
+        self.total_index_info["file_index"].append(self.cur_write_file_index)
+        self.total_index_info["run_id"].append(frame["I3EventHeader"].run_id)
+        self.total_index_info["event_id"].append(frame["I3EventHeader"].event_id)
+        
+        if(self.is_frame_mc(frame)):
+            # add extra MC info
+            # @TODO: implement
+            pass
+        if(self.is_frame_llp(frame)):
+            # add extra MC info
+            # @TODO: implement
+            pass
+    
     def write_aux_files(self, total_num_written, total_num_events_overall, total_num_files_written):
+        """ Write files used for re-weighting.
+
+        Since we only save a multiple of num_events_per_file
+        the weighting will be off. The following files are used to
+        account for the events that were left out.
+
+        """
         ############ the next 3 weighting files are needed for correct re-weighting
 
         print("Total num written, total events overall, total files written:")
@@ -103,7 +250,6 @@ class Converter(object):
         df.to_parquet(path=os.path.join(self.target_folder, "indexfile.pq"))
             
         effective_no_i3_per_pq=float(len(self.filenames))*float(total_num_written)/float(total_num_events_overall)
-
         effective_no_i3_per_pq/=float(total_num_files_written)
 
         ## write index_to_string identifier file
@@ -112,7 +258,9 @@ class Converter(object):
         if(effective_events_per_file==-1):
             effective_events_per_file=total_num_written
 
-        df=pandas.DataFrame(data={"filename": self.target_filenames, "effective_num_i3_files_per_pq": effective_no_i3_per_pq, "num_events_per_file": effective_events_per_file})
+        df=pandas.DataFrame(data={"filename": self.target_filenames,
+                                  "effective_num_i3_files_per_pq": effective_no_i3_per_pq,
+                                  "num_events_per_file": effective_events_per_file})
         df.to_parquet(path=os.path.join(self.target_folder, "filelist.pq"))
         df.to_csv(os.path.join(self.target_folder, "filelist.csv"))
 
@@ -123,217 +271,13 @@ class Converter(object):
         ############
         print("Total num events written to files .. ", total_num_written)
 
-    def extract_into_similar_sized_files(self):
-        # create feature objects based on encoding type
-        self.feature_extractor, self.feature_indices = self.create_feature_objects()
-
-        # main loop
-        return self.go_through_i3_files()
-
-    def go_through_i3_files(self):
-        # set flags and counters
-        total_num_written=0
-        self.num_appended=0
-        self.cur_write_file_index=0
-        self.cur_file_p_counter=0
-        self.cur_file_index=0
-        self.is_first_frame_mc = None
-        # create progress bar for iterating through files
-        pbar = tqdm.tqdm(total=self.num_files)
-
-        ### MAIN LOOP ###
-        # iterate i3 files
-        # @TODO: make this a for loop over self.filenames
-        while(self.cur_file_index<self.num_files):
-            # new file so clear buffer
-            self.clear_buffer()
-            self.num_appended=0
-
-            # fill buffer
-            while( self.num_appended<self.num_events_per_file ) :
-                
-                if(self.cur_file_index>=self.num_files):
-                    break
-                
-                print("opening file ... ", self.filenames[self.cur_file_index])
-                f=dataio.I3File(self.filenames[self.cur_file_index])
-                this_file_p_counter = 0
-
-                # go through frames in i3 file
-                while( self.num_appended<self.num_events_per_file and f.more() ):
-                    # get frame
-                    # @TODO: option for P vs Q frame
-                    try:
-                        frame = f.pop_daq()
-                    except:
-                        print("could not pop daq frame")
-                        break
-
-                    # check that frame is good
-                    if(not self.check_good_frame(frame)):
-                        print("Bad frame, skip:", frame)
-                        continue
-
-                    this_file_p_counter+=1
-                    # if previous buffer was full in the middle of this i3 file, then start from that point now
-                    if(this_file_p_counter>self.cur_file_p_counter):
-                        ## new p frame - extract info
-                        self.cur_file_p_counter+=1
-
-                        # fill buffer with event
-                        self.add_event_to_buffer(frame)
-                        self.num_appended += 1
-
-                f.close()
-                print("... closed file .. num appended %d - target max buffer %d" % \
-                      (self.num_appended, self.num_events_per_file))
-                
-                # did we fill the buffer before the i3file was empty?
-                if(self.num_appended==self.num_events_per_file):
-                    print("reached max buffer ..")
-                    print("CUR FILE P COUNTER ", self.cur_file_p_counter)
-                    # break out again if we have filled the buffer
-                    break
-                else:
-                    # go to next i3 file and reset frame counter
-                    self.cur_file_index+=1
-                    self.cur_file_p_counter=0
-
-                pbar.update(1)
-
-            ## go back with deque index by as many items as have been appended
-            #self.cur_deque_index-=num_appended
-            #print("num ", num_appended, "evpf", self.num_events_per_file)
-            if(self.num_appended==self.num_events_per_file):
-                ## we hit exactly the desired number ... write file 
-
-                splits=self.filenames[self.cur_file_index].split(".")
-  
-                ## remove gz and i3 ending etc
-                if(splits[-1]=="i3" or splits[-1]=="gz" or splits[-1]=="bz2" or splits[-1]=="zst"):
-                    splits=splits[:-1]
-                if(splits[-1]=="i3" or splits[-1]=="gz" or splits[-1]=="bz2" or splits[-1]=="zst"):
-                    splits=splits[:-1]
-                ## take all splits
-                raw_filename=os.path.basename(".".join(splits))+(".%.6d" % self.cur_write_file_index)
-                new_target_filename=os.path.join(self.target_folder, raw_filename)
-
-                # SAVE BUFFER TO FILE
-                print(new_target_filename)
-                final_filename=self._save_buffer_to_file( new_target_filename)
-                
-                self.target_filenames.append(final_filename)
-
-                ## sql has only a single files for example
-                #if(self.write_multiple_files):
-                self.cur_write_file_index+=1
-
-                total_num_written+=self.num_appended
-                #print("cur write file index", self.cur_write_file_index)
-
-        pbar.close()
-
-         ## subtract from the total weight lists the currently num_appended to be at same length as full dict
-
-        if(self.num_appended>0):
-
-            if(self.is_first_frame_mc):
-                for k in self.total_weight_info["I3MCWeightDict"].keys():
-                    self.total_weight_info["I3MCWeightDict"][k]=numpy.array(self.total_weight_info["I3MCWeightDict"][k][:-self.num_appended])
-
-            self.total_index_info["index_within_file"]=self.total_index_info["index_within_file"][:-self.num_appended]
-            self.total_index_info["rowgroup_index_within_file"]=self.total_index_info["rowgroup_index_within_file"][:-self.num_appended]
-            self.total_index_info["file_index"]=self.total_index_info["file_index"][:-self.num_appended]
-
-            ## also add run_id / event_id for crosscheck .. dont need it really
-
-            self.total_index_info["run_id"]=self.total_index_info["run_id"][:-self.num_appended]
-            self.total_index_info["event_id"]=self.total_index_info["event_id"][:-self.num_appended]
-            # self.total_index_info["log10_deposited_energy"]=self.total_index_info["log10_deposited_energy"][:-self.num_appended]
-        print("tot num written", total_num_written)
-        print("tot num + appended ", total_num_written+self.num_appended)
-        print("cur write file index", self.cur_write_file_index)
-
-        return total_num_written, total_num_written+self.num_appended, self.cur_write_file_index
-
-    def clear_buffer(self):
-        for k in self.buffer.keys():
-            self.buffer[k].clear()
-
-    def add_event_to_buffer(self, frame):
-        
-        # get pulse data
-        # event_info = final_data, mean_cog, string_list, om_list, module_type_list, overall_charge, median_times
-        event_info = i3_methods.obtain_encoded_data(frame, 
-                                                    #data_overview, final_data, weighted_time_mean, weighted_time_median, mean_cog, median_cog, string_list, om_list, overall_charge=i3_methods.obtain_encoded_data(phys_frame, 
-                                                    self.pulse_series_name, # afterpulse cleaned map if cleaning is used, otherwise this will be the normal map
-                                                    self.geo, 
-                                                    self.rde_dict,
-                                                    feature_extractor=self.feature_extractor,
-                                                    feature_indices=self.feature_indices
-                                                    )
-        # unpack return tuple
-        final_data, mean_cog, string_list, om_list, module_type_list, overall_charge, median_times = event_info
-
-        self.buffer["data_encoded"].append(final_data)
-        self.buffer["data_weighted_medians"].append(median_times)
-        
-        self.buffer["data_cog_mean"].append(mean_cog)
-
-        self.buffer["string_list"].append(string_list)
-        self.buffer["om_list"].append(om_list)
-        self.buffer["module_type_list"].append(module_type_list)
-
-        self.buffer["totcharge"].append(overall_charge)
-        self.buffer["nch"].append(len(string_list))
-
-        ## also get event id/runid
-
-        self.buffer["run_id"].append(frame["I3EventHeader"].run_id)
-        self.buffer["event_id"].append(frame["I3EventHeader"].event_id)
-
-        ## index information
-        self.total_index_info["index_within_file"].append(self.num_appended)
-        self.total_index_info["rowgroup_index_within_file"].append(int(self.num_appended//self.num_per_row_group))
-        self.total_index_info["file_index"].append(self.cur_write_file_index)
-
-        ## also add run_id / event_id for crosscheck .. dont need it really
-
-        self.total_index_info["run_id"].append(frame["I3EventHeader"].run_id)
-        self.total_index_info["event_id"].append(frame["I3EventHeader"].event_id)
-        
-        if(self.is_frame_mc(frame)):
-            # add extra MC info
-            # @TODO: implement
-            pass
-        if(self.is_frame_llp(frame)):
-            # add extra MC info
-            # @TODO: implement
-            pass
-
-    def check_good_frame(self, frame):
-        # @TODO: implement
-
-        # is it MC frame?
-        is_mc = self.is_frame_mc(frame)
-
-        if(self.is_first_frame_mc is None):
-            self.is_first_frame_mc=is_mc
-
-        ## check that all files are similar (MC or data, but not both)
-        assert(self.is_first_frame_mc==is_mc)
-
-        return True
-    
-    def is_frame_mc(self, frame):
-        # @TODO: is this a good way to check MC?
-        return frame.Has("MMCTrackList")
-    
-    def is_frame_llp(self,frame):
-        return frame.Has("LLPInfo")
-    
     def create_feature_objects(self):
-        """ Create feature extractor and feature indices
+        """ Create feature extractor from icecube.ml_suite.EventFeatureFactory
+            and feature indices dictionary.
+
+            Used to extract pulse data etc. from frame.
+            feature_indices is used to label the returned feature
+            vector from feature_extractor
         """
         # features
         feature_extractor=None
@@ -342,16 +286,15 @@ class Converter(object):
         # LOAD FEATURES CONFIGURATION
         ft_config=yaml.safe_load(feature_configs.feature_configs[self.encoding_type].replace("PULSEKEY_PLACEHOLDER", self.pulse_series_name))
         print("FT CONFIG", ft_config)
-        # indices for DOM position xyz
+
+        # indices for DOM position xyz, since we are manually adding position
         feature_indices["position"]=list(range(0,3))
-        
-        # this is for adding position to the feature vector from feature_extractor
-        last_offset = 3 
+        last_offset = 3 # account for xyz in the prepended feature vector
 
         # iterate all features and fix indices
         for item in ft_config["feature_config"]["features"]:
             
-            ## charge stuff
+            # charge stuff
             # TotalCharge -> log(TotalCharge + 1)
             if(item["class"]=="TotalCharge"):
                 if("log_charges" not in feature_indices.keys()):
@@ -421,13 +364,54 @@ class Converter(object):
             
         feature_extractor = EventFeatureFactory(ft_config).make_feature_extractor()
         return feature_extractor, feature_indices
+
+    def trim_dictionaries(self):
+        """ Match size of index info dictionaries to file size.
+        
+        Only multiples of num_event_per_file are saved, so trim off
+        excess events from the index dictionaries.
+
+        This is only applicable if total number of events is not
+        a multiple of num_events_per_file.
+        
+        """
+        # subtract from the total weight lists the currently num_appended to be at same length as full dict
+        if(self.num_appended>0):
+            if(self.is_first_frame_mc):
+                for k in self.total_weight_info["I3MCWeightDict"].keys():
+                    self.total_weight_info["I3MCWeightDict"][k]=numpy.array(self.total_weight_info["I3MCWeightDict"][k][:-self.num_appended])
+            self.total_index_info["index_within_file"]=self.total_index_info["index_within_file"][:-self.num_appended]
+            self.total_index_info["rowgroup_index_within_file"]=self.total_index_info["rowgroup_index_within_file"][:-self.num_appended]
+            self.total_index_info["file_index"]=self.total_index_info["file_index"][:-self.num_appended]
+            self.total_index_info["run_id"]=self.total_index_info["run_id"][:-self.num_appended]
+            self.total_index_info["event_id"]=self.total_index_info["event_id"][:-self.num_appended]
+
+    def check_good_frame(self, frame):
+        # @TODO: implement
+        # is it MC frame?
+        is_mc = self.is_frame_mc(frame)
+
+        if(self.is_first_frame_mc is None):
+            self.is_first_frame_mc=is_mc
+
+        ## check that all files are similar (MC or data, but not both)
+        assert(self.is_first_frame_mc==is_mc)
+
+        return True
     
-    def _initialize_buffer(self):
+    def is_frame_mc(self, frame):
+        # @TODO: is this a good way to check MC?
+        return frame.Has("MMCTrackList")
+    
+    def is_frame_llp(self,frame):
+        return frame.Has("LLPInfo")
+    
+    def initialize_buffer(self):
         """ Create empty buffer that holds event data."""
         #@TODO: what to put in here?
         #@TODO: add LLP info
         self.buffer = collections.OrderedDict()
-        self.buffer["data_encoded"]=[] # this is input to network (but scale etc first)
+        self.buffer["data_encoded"]=[] # this is input to network (but scale times etc first)
         self.buffer["data_weighted_medians"]=[]
         self.buffer["data_cog_mean"]=[]
 
@@ -435,12 +419,9 @@ class Converter(object):
         self.buffer["om_list"]=[]
         self.buffer["module_type_list"]=[]
 
-        # self.buffer["length"]=[]
-
         self.buffer["totcharge"]=[]
         self.buffer["nch"]=[]
 
-        # self.buffer["interaction_type"]=[]
         self.buffer["run_id"]=[]
         self.buffer["event_id"]=[]
 
@@ -452,14 +433,29 @@ class Converter(object):
         # self.buffer["llp_decay_x"] = []
         # self.buffer["llp_decay_y"] = []
         # self.buffer["llp_decay_z"] = []
+ 
+    def clear_buffer(self):
+        for k in self.buffer.keys():
+            self.buffer[k].clear()
 
-
-    def _save_buffer_to_file(self, base_filename):
-
-        # print("self buffer", self.buffer)
+    def save_buffer_to_file(self):
+        # buffer dictionary -> awkward array
         full_arr=awkward.Array(self.buffer)
 
-        awkward.to_parquet(full_arr, base_filename+".pq", row_group_size=self.num_per_row_group)
+        # create filename
+        splits=self.filenames[self.cur_file_index].split(".")
+        ## remove gz and i3 ending etc
+        if(splits[-1]=="i3" or splits[-1]=="gz" or splits[-1]=="bz2" or splits[-1]=="zst"):
+            splits=splits[:-1]
+        if(splits[-1]=="i3" or splits[-1]=="gz" or splits[-1]=="bz2" or splits[-1]=="zst"):
+            splits=splits[:-1]
+        # put filename back together, now without file extensions
+        raw_filename=os.path.basename(".".join(splits))+(".%.6d" % self.cur_write_file_index)
+        target_filename=os.path.join(self.target_folder, raw_filename) + ".pq"
 
-        return base_filename+".pq"
+        # save to parquet
+        print("Writing buffer to", target_filename)
+        awkward.to_parquet(full_arr, target_filename, row_group_size=self.num_per_row_group)
+        self.target_filenames.append(target_filename)
 
+        return target_filename

@@ -1,5 +1,5 @@
-
-# @TODO: change name
+"""Contains dictionaries to be read by icecube.ml_suite.EventFeatureFactory
+"""
 
 feature_configs=dict()
 

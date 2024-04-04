@@ -113,7 +113,7 @@ def obtain_encoded_data(frame,
     # map of OMKey -> feature vector
     res=feature_extractor.get_feature_map(frame)
 
-    feature_vec=[]
+    feature_vec=[] # we will modify the feature_extractor feature vec
 
     total_charges=[]
     weighted_positions=[]
@@ -168,7 +168,6 @@ def obtain_encoded_data(frame,
     charge_weighted_time_mean/=overall_charge_in_event
 
     mean_cog_pos=numpy.sum(weighted_positions,axis=0)/sum(total_charges)
-    #mean_cog_pos=0.0
     string_id_list=numpy.array(string_id_list, dtype=numpy.int64)
     om_id_list=numpy.array(om_id_list, dtype=numpy.int64)
     module_type_list=numpy.array(module_type_list, dtype=numpy.int64)
