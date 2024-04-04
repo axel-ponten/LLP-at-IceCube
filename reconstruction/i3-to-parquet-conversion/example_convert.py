@@ -18,6 +18,9 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--encoding", action="store",
         type=str, default="mod_harnisch", dest="encoding",
         help="Encoding type from feature config to be passed to icecube.ml_suite.EventFeatureFactory")
+    parser.add_argument("--no-llp", action="store_false",
+        default=True, dest="is-llp",
+        help="Is the dataset an LLP MC simulation?")
     
     params = vars(parser.parse_args())  # dict()
 
@@ -31,5 +34,7 @@ if __name__ == "__main__":
             encoding_type="mod_harnisch",
             pulse_series_name="InIcePulses",
             gcdfile=params["gcdfile"],
-            num_events_per_file=params["num-events-per-file"]
+            num_events_per_file=params["num-events-per-file"],
+            num_per_row_group=100,
+            is_llp=params["is-llp"],
     )
