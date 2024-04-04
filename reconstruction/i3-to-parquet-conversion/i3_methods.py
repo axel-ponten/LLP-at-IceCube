@@ -1,9 +1,7 @@
 import numpy
-#import torch
 import glob
 import os
 import yaml
-#import pylab
 import time
 
 from icecube import icetray, dataio, dataclasses, MuonGun
@@ -58,7 +56,6 @@ def extract_geometry_n_rdes(gcd_file):
     for k in geo.keys():
         if(k.om<=60):
             dict_geo[k]=[geo[k].position.x,geo[k].position.y,geo[k].position.z]
-    
 
     ## extract RDE s
 
@@ -74,7 +71,6 @@ def extract_geometry_n_rdes(gcd_file):
 
     return fr["I3Geometry"], dict_geo, rde_dict
 
-
 def weighted_quantile(data, weights, perc):
     """
     perc : percentile in [0-1]!
@@ -84,6 +80,40 @@ def weighted_quantile(data, weights, perc):
     weights = weights[ix] # sort weights
     cdf = (numpy.cumsum(weights) - 0.5 * weights) / numpy.sum(weights) # 'like' a CDF function
     return numpy.interp(perc, cdf, data)
+
+def obtain_llp_data(frame, surface=None):
+    """ Return frame["LLPInfo"] information
+    
+    return (production, decay, direction,
+            gap_length, fractional_energy, llp_energy,
+            decay_asymmetry)
+    """
+    if "LLPInfo" not in frame:
+        raise ValueError("LLPInfo not in frame")
+    # production and compute decay point
+    direction  = dataclasses.I3Direction(frame["LLPInfo"]["zenith"],
+                                         frame["LLPInfo"]["azimuth"])
+    production = dataclasses.I3Position(frame["LLPInfo"]["prod_x"],
+                                        frame["LLPInfo"]["prod_y"],
+                                        frame["LLPInfo"]["prod_z"])
+    decay = production + \
+            dataclasses.I3Position(frame["LLPInfo"]["length"],
+                                   direction.theta,
+                                   direction.phi,
+                                   dataclasses.I3Position.sph)
+    # if surface is not None:
+    #     # negative value means intersection behind point, positive means in front
+    #     prod_intersection  = surface.intersection(production, direction)
+    #     decay_intersection = surface.intersection(decay, direction)
+
+    gap_length        = frame["LLPInfo"]["length"]
+    fractional_energy = frame["LLPInfo"]["fractional_energy"]
+    llp_energy        = frame["LLPInfo"]["llp_energy"]
+    decay_asymmetry   = frame["LLPInfo"]["decay_asymmetry"]
+    
+    return (production, decay, direction,
+            gap_length, fractional_energy, llp_energy,
+            decay_asymmetry)
 
 def obtain_encoded_data(frame, 
                         pulse_series_name, 

@@ -11,7 +11,7 @@ if(version("awkward")[0]=="1"):
 else:
     import awkward
 
-from icecube import dataio
+from icecube import dataio, dataclasses
 from icecube.ml_suite import EventFeatureFactory
 
 import i3_methods
@@ -26,6 +26,7 @@ class Converter(object):
                 gcdfile="/data/sim/sim-new/downloads/GCD/GeoCalibDetectorStatus_2021.Run135903.T00S1.Pass2_V1b_Snow211115.i3.gz",
                 num_events_per_file=1000, # how many events per .pq file
                 num_per_row_group=100, # 100 seems a reasonable size
+                is_llp=False, # is the dataset an LLP simulation?
                 ):
         # input and output filenames
         self.filenames = filenames
@@ -40,7 +41,8 @@ class Converter(object):
         self.num_per_row_group=num_per_row_group
         assert(self.num_events_per_file%self.num_per_row_group==0), (self.num_events_per_file, self.num_per_row_group)
         self.num_rowgroups=self.num_events_per_file/self.num_per_row_group
-
+        self.is_llp = is_llp
+        
         # create gcd surface
         #padding = 0.
         #self._surface = axel_i3_methods.MakeSurface(gcdfile, padding)
@@ -220,11 +222,29 @@ class Converter(object):
             # add extra MC info
             # @TODO: implement
             pass
-        if(self.is_frame_llp(frame)):
-            # add extra MC info
-            # @TODO: implement
-            pass
-    
+        if(self.is_llp):
+            self.add_llp_info_to_buffer(frame)
+            
+    def add_llp_info_to_buffer(self, frame):
+        # get data from frame["LLPInfo"]
+        llp_data = i3_methods.obtain_llp_data(frame)
+        # unpack
+        production, decay, direction, \
+        gap_length, fractional_energy, llp_energy, \
+        decay_asymmetry = llp_data
+        # add to buffer
+        self.buffer["llp_prod_x"].append(production.x)
+        self.buffer["llp_prod_y"].append(production.y)
+        self.buffer["llp_prod_z"].append(production.z)
+        self.buffer["llp_decay_x"].append(decay.x)
+        self.buffer["llp_decay_y"].append(decay.y)
+        self.buffer["llp_decay_z"].append(decay.z)
+
+        self.buffer["llp_gap_length"].append(gap_length)
+        self.buffer["llp_fractional_energy"].append(fractional_energy)
+        self.buffer["llp_energy"].append(llp_energy)
+        self.buffer["llp_decay_asymmetry"].append(decay_asymmetry) 
+        
     def write_aux_files(self, total_num_written, total_num_events_overall, total_num_files_written):
         """ Write files used for re-weighting.
 
@@ -238,14 +258,10 @@ class Converter(object):
         print("Total num written, total events overall, total files written:")
         print(total_num_written, total_num_events_overall, total_num_files_written)
         ## also write weightning information into pandas file (to be used with weightsim)
-        for k in self.total_weight_info.keys():
-            print(k, len(self.total_weight_info[k]))
         df=pandas.DataFrame(data=self.total_weight_info)    
         df.to_parquet(path=os.path.join(self.target_folder, "weightfile.pq"))
         
         ## write index file which holds index information
-        for k in self.total_index_info.keys():
-            print(k, len(self.total_index_info[k]))
         df=pandas.DataFrame(data=self.total_index_info)    
         df.to_parquet(path=os.path.join(self.target_folder, "indexfile.pq"))
             
@@ -396,6 +412,8 @@ class Converter(object):
 
         ## check that all files are similar (MC or data, but not both)
         assert(self.is_first_frame_mc==is_mc)
+        # check that you didn't lie when you said dataset has LLP
+        assert(self.is_llp == self.is_frame_llp(frame))
 
         return True
     
@@ -426,13 +444,19 @@ class Converter(object):
         self.buffer["event_id"]=[]
 
         # LLP info
-        # self.buffer["llp_prod_x"] = []
-        # self.buffer["llp_prod_y"] = []
-        # self.buffer["llp_prod_z"] = []
+        if self.is_llp:
+            self.buffer["llp_prod_x"] = []
+            self.buffer["llp_prod_y"] = []
+            self.buffer["llp_prod_z"] = []
+    
+            self.buffer["llp_decay_x"] = []
+            self.buffer["llp_decay_y"] = []
+            self.buffer["llp_decay_z"] = []
 
-        # self.buffer["llp_decay_x"] = []
-        # self.buffer["llp_decay_y"] = []
-        # self.buffer["llp_decay_z"] = []
+            self.buffer["llp_gap_length"] = []
+            self.buffer["llp_fractional_energy"] = []
+            self.buffer["llp_energy"] = []
+            self.buffer["llp_decay_asymmetry"] = []
  
     def clear_buffer(self):
         for k in self.buffer.keys():
