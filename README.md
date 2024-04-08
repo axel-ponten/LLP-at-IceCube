@@ -1,10 +1,12 @@
 # LLP-at-IceCube
 
-Repository for the Long Lived Particles (LLP) at IceCube analysis. Contact:
+Repository for the Long Lived Particles (LLP) at IceCube analysis. Sub-folders contain separate README.md.
+
+Contact:
 
 * Axel Pontén, PhD student at Uppsala University, axel.ponten@physics.uu.se
-* Carlos Perez de los Heros, Professor at Uppsala University, cph@physics.uu.se
 * Victoria Parrish, PostDoc at Michigan State University, vparrish@icecube.wisc.edu
+* Carlos Perez de los Heros, Professor at Uppsala University, cph@physics.uu.se
 
 ## Background
 This project is part of a beyond standard model analysis at the IceCube neutrino observatory, which is a cube kilometer large neutrino detector buried 2 km deep in the antarctic ice (https://icecube.wisc.edu/). The detector is built to measure rare cosmic neutrino interactions a few times a year, but also detects the abundant atmospheric muon background at a rate of 3 kHz. The analysis searches for signatures of a hypothesized class of exotic particles called long lived particles (LLPs) in the background atmospheric muon flux. The LLPs could potentially be produced in a bremstrahlung-like process where the muon scatters of an oxygen or hydrogen in the ice. The LLP would then decay after some time, hopefully inside the detector for it to be detectable.
