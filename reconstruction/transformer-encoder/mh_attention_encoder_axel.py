@@ -291,14 +291,14 @@ class LLPTransformerModel(nn.Module):
         padded_tensor_first, padding_mask_first, padding_mask_last=self._create_datarep_and_mask(datavecs, datalens, self.attn_num_heads_per_layer)
         
         # @TODO: comment this out
-        print("types forward ...---------_> ")
-        print(type(padded_tensor_first))
-        print(type(padding_mask_first))
-        print(type(padding_mask_last))
-        print("padding mask first")
-        print(padding_mask_first)
-        print("attn package", self.attn_package)
-        print("---------------------------")
+        # print("types forward ...---------_> ")
+        # print(type(padded_tensor_first))
+        # print(type(padding_mask_first))
+        # print(type(padding_mask_last))
+        # print("padding mask first")
+        # print(padding_mask_first)
+        # print("attn package", self.attn_package)
+        # print("---------------------------")
 
         # embedding: input projection D -> C (computational dim)
         computational_input=self.input_projector(padded_tensor_first)
