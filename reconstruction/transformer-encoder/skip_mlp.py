@@ -15,7 +15,7 @@ def _make_mlp(input_dim, hidden_dims, output_dim, dtype=torch.float64, layer_nor
     for i in range(len(mlp_in_dims)):
        
         l = torch.nn.Linear(mlp_in_dims[i], mlp_out_dims[i], dtype=dtype)
-        print("L ", l, l.weight.shape)
+        #print("L ", l, l.weight.shape)
         nn_list.append(l)
         
         if i < (len(mlp_in_dims) - 1):
