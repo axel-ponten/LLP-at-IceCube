@@ -121,7 +121,7 @@ class LLPDataset(Dataset):
 
 def llp_collate_fn(batch):
     """ Custom collate function for LLP data to match transformer input. """
-    datavecs = [item[0] for item in batch]
+    datavecs = [item[0].unsqueeze(0) for item in batch]
     datalens = torch.tensor([len(item) for item in datavecs], device=datavecs[0].device)
     label = [item[1] for item in batch]
     label = torch.stack(label, dim=0)
