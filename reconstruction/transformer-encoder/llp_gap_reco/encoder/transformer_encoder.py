@@ -50,8 +50,8 @@ else:
     from xformers.ops import fmha
 
 # custom modules
-from skip_mlp import SkipMLP
-import config_parser
+from .skip_mlp import SkipMLP
+from .config_parser import config_parser
 
 class LLPTransformerModel(nn.Module):
     """ Transformer encoder for IceCube events.
@@ -61,7 +61,7 @@ class LLPTransformerModel(nn.Module):
     def __init__(self, **kwargs):
         super(LLPTransformerModel, self).__init__()
         
-        cfg_parser=config_parser.config_parser()
+        cfg_parser=config_parser()
 
         cfg_parser.add_default_kwarg("settings", "input_dim", 5, int)
         cfg_parser.add_default_kwarg("settings", "output_dim", 50, int)

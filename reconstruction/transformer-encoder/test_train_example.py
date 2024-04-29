@@ -15,7 +15,7 @@ import torch
 import torch.nn as nn
 import yaml
 
-from mh_attention_encoder_axel import LLPTransformerModel
+from llp_gap_reco.encoder import LLPTransformerModel
 import jammy_flows
 
 ###### GENERATE DATA #######

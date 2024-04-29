@@ -14,7 +14,7 @@ import numpy as np
 from torchviz import make_dot
 import yaml
 
-import mh_attention_encoder_axel
+import llp_gap_reco.encoder.transformer_encoder as mh_attention_encoder_axel
 
 ############################################
 ############## Helper functions ############
@@ -96,7 +96,7 @@ print(model)
 
 # inputs
 batch_size = 8
-datavecs = [generate_input(1,np.random.randint(5,20),20) for i in range(1,batch_size+1)]
+datavecs = [generate_input(1,np.random.randint(5,20),config["settings"]["input_dim"]) for i in range(1,batch_size+1)]
 datalens = torch.Tensor([vec.shape[1] for vec in datavecs])
 print("datavecs", datavecs)
 print("datalens", datalens)

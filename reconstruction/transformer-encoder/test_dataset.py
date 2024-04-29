@@ -1,4 +1,4 @@
-from llpdataset import LLPDataset, llp_collate_fn
+from llp_gap_reco.dataset import LLPDataset, llp_collate_fn
 import yaml
 import torch
 
@@ -23,7 +23,6 @@ dataset = LLPDataset(
     device="cuda",
     dtype=torch.float32,
 )
-
 
 ##### TEST DATASET ######
 print(dataset)
