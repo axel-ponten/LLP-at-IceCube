@@ -206,6 +206,9 @@ def obtain_encoded_data(frame,
     
     # log(totcharge + 1) cus charge can be 0 and charge spans orders of magnitude
     prepared_encoded_data[:, feature_indices["log_total_charge"]]=numpy.log(prepared_encoded_data[:, feature_indices["log_total_charge"]]+1.0)
+
+    # log(charge + 1) for the other charges as well
+    prepared_encoded_data[:, feature_indices["log_charges"]]=numpy.log(prepared_encoded_data[:, feature_indices["log_charges"]]+1.0)
     
     # time starts at charged weighted mean time, and not at trigger start time
     median_times=numpy.array(median_times)-charge_weighted_time_mean
