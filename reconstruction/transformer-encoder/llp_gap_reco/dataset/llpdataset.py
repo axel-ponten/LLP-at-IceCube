@@ -25,7 +25,7 @@ class LLPDataset(Dataset):
         dtype (torch.dtype, optional): Data type for torch. Defaults to None.
     """
     def __init__(self, index_file_path, file_paths, feature_indices_file_path,
-                 normalize=True, normalization_args=None, device=None, dtype=None):
+                 normalize_data=True, normalize_target=False, normalization_args=None, device=None, dtype=None):
         # file with event index info
         self.index_file_path = index_file_path
         self.total_index_info = pd.read_parquet(index_file_path)
@@ -38,12 +38,13 @@ class LLPDataset(Dataset):
         self.feature_indices = yaml.safe_load(open(feature_indices_file_path, "r"))
 
         # dictionary {feature types : relevant normalization args}
-        self.normalize = normalize
-        if self.normalize:
+        self.normalize_data = normalize_data
+        if self.normalize_data:
             assert normalization_args is not None
             # check that all features are covered
             for feature_type in self.feature_indices.keys():
                 assert feature_type in normalization_args
+        self.normalize_target = normalize_target
         self.normalization_args = normalization_args
 
         # only load one file to memory at a time
@@ -83,9 +84,10 @@ class LLPDataset(Dataset):
         data = self.transform_data(data)
         
         # normalize
-        if self.normalize:
+        if self.normalize_data:
             # @TODO: normalize file when loading?
             data = self.normalize_data(data)
+        if self.normalize_target:
             label = self.normalize_target(label) 
         
         return data, label
