@@ -86,9 +86,9 @@ class LLPDataset(Dataset):
         # normalize
         if self.normalize_data:
             # @TODO: normalize file when loading?
-            data = self.normalize_data(data)
+            data = self._normalize_data(data)
         if self.normalize_target:
-            label = self.normalize_target(label) 
+            label = self._normalize_target(label) 
         
         return data, label
     
@@ -104,7 +104,7 @@ class LLPDataset(Dataset):
         self.df_file = pd.read_parquet(file_path)
         self.current_load_file_index = file_index
 
-    def normalize_data(self, data):
+    def _normalize_data(self, data):
         """ Normalize the data. x = (x-offset)*scale"""
         # for each feature type ("log_charges", "position", "abs_time", etc.)
         for feature_type, indices in self.feature_indices.items():
@@ -114,7 +114,7 @@ class LLPDataset(Dataset):
                 data[:, indices] *= self.normalization_args[feature_type]["scale"]
         return data
 
-    def normalize_target(self, target):
+    def _normalize_target(self, target):
         """ Scale the target (gap vertices), same as position """
         if self.normalization_args["position"]["scale"] != 1.0:
             target *= self.normalization_args["position"]["scale"]
