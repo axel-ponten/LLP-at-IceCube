@@ -1,4 +1,4 @@
-
+*.pth
 *.hdf
 *.hdf5
 *.gz
