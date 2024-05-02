@@ -1,6 +1,6 @@
 import argparse
 from converter import Converter
-import pandas as pd
+import os
 
 if __name__ == "__main__":
     # read in parser
@@ -11,7 +11,7 @@ if __name__ == "__main__":
             help="Directory where to store parquet output. Include backslash.")
     parser.add_argument("-i", "--input-file", action="store",
             type=str, required=True, dest="input-file",
-            help="Input i3 file.")
+            help="Input i3 file(s). Separate multiple files with commas.")
     parser.add_argument("-n", "--num-events-per-file", action="store",
             type=int, default=1000, dest="num-events-per-file",
             help="Number of events per parquet file.")
@@ -33,9 +33,16 @@ if __name__ == "__main__":
     
     params = vars(parser.parse_args())  # dict()
 
-    # which files to convert? list of paths
-    filenames = [params["input-file"]]
+    # create target folder if it does not exist        
+    try:
+        os.makedirs(params["target-folder"])
+        print("Created target folder since it did not exist.")
+    except FileExistsError:
+        pass
     
+    # split input files. If only one file, split will return a list with one element
+    filenames = params["input-file"].split(",")
+
     # run conversion
     Converter(
             filenames,
