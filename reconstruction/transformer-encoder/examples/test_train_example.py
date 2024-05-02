@@ -12,56 +12,64 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+from torch.utils.data import DataLoader
 import torch.nn as nn
 import yaml
 
+import sys
+sys.path.append("../")
 from llp_gap_reco.encoder import LLPTransformerModel
+from llp_gap_reco.dataset import LLPDataset, llp_collate_fn
 import jammy_flows
 
-###### GENERATE DATA #######
-def generate_dummy_input(batch_size, seq_length, input_dim):
-    # Generate test input
-    dummy_input = torch.randn((batch_size, seq_length, input_dim), dtype=torch.float32)
-    return dummy_input
+###### GET DATASET #######
 
-def generate_dummy_labels(batch_size):
-    # labels: prod_x, prod_y, prod_z, dec_x, dec_y, dec_z
-    dummy_labels = torch.randn((batch_size, 6), dtype=torch.float32)
-    return dummy_labels
+# filepaths
+top_folder = "/home/axel/i3/i3-pq-conversion-files/conversion_testing_ground/"
+index_file_path = top_folder + "indexfile.pq"
+feature_indices_file_path = top_folder + "feature_indices.yaml"
+file_paths = [top_folder + "L2test2.000000.pq"]
 
-def forward_model(model, pdf, datavecs):
-    # create datalens
-    datalens = torch.Tensor([vec.shape[1] for vec in datavecs])
+# normalizaton args
+norm_path = "/home/axel/i3/LLP-at-IceCube/reconstruction/transformer-encoder/configs/normalization_args.yaml"
+with open(norm_path, "r") as file:
+    normalization_args = yaml.safe_load(file)
 
-    # # Set the model to evaluation mode
-    # model.eval()
-    # pdf.eval()
+# create dataset
+dataset = LLPDataset(
+    index_file_path,
+    file_paths,
+    feature_indices_file_path,
+    normalize_data=True,
+    normalize_target=False,
+    normalization_args=normalization_args,
+    device="cuda",
+    dtype=torch.float32,
+)
 
-    # Move the model and input to the same device
-    model = model.to('cuda')
-    pdf = pdf.to('cuda')
-    datavecs = [x.to('cuda') for x in datavecs] if isinstance(datavecs, list) else datavecs.to('cuda')
-    datalens = datalens.to('cuda')
-
-    # Run the input through the model
-    output = model(datavecs, datalens)
-    y_pred = pdf.marginal_moments(output,samplesize=300)
-
-    return y_pred
+# dataloader
+batch_size = 8
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn=llp_collate_fn)
 
 def variance_from_covariance(cov_mx):
     return np.sqrt(np.diag(cov_mx))
 
 ####### CREATE MODEL #######
 # model settings
-config_path = "configs/test_settings.yaml"
+config_path = "../configs/test_settings.yaml"
 with open(config_path, 'r') as stream:
     config = yaml.safe_load(stream)
 kwargs_dict = config["settings"]
 
 # create transformer encoder and cond. normalizing flow
 model = LLPTransformerModel(**kwargs_dict)
+sigmoid_layer = nn.Sigmoid()
 pdf = jammy_flows.pdf("e6", "gggggt", conditional_input_dim=config["settings"]["output_dim"])
+
+# init for the gaussian flow
+# test_label = torch.Tensor([400,400,400, -400,-400,-400]).unsqueeze(0)  
+# pdf.init_params(data=test_label)
+
 model.to('cuda')
 pdf.to('cuda')
 print("Transformer model:", model)
@@ -70,23 +78,6 @@ total_params = sum([p.numel() for p in model.parameters() if p.requires_grad])
 print("Trainable transformer encoder parameters:", total_params)
 print("Trainable flow parameters:", pdf.count_parameters())
 ############################
-
-############ FAKE TRAINING DATA ############
-n_batches = 10
-batch_size = 8
-input_dim = config["settings"]["input_dim"]
-train_loader = []
-for i in range(n_batches):
-    # generate
-    datavecs = [generate_dummy_input(1,np.random.randint(12, 5000), input_dim) for _ in range(batch_size)]
-    datalens = torch.Tensor([vec.shape[1] for vec in datavecs])
-    datalabels = generate_dummy_labels(batch_size)
-    # send to cuda
-    datavecs = [x.to('cuda') for x in datavecs] if isinstance(datavecs, list) else datavecs.to('cuda')
-    datalens = datalens.to('cuda')
-    datalabels = datalabels.to('cuda')
-    # append
-    train_loader.append((datavecs, datalens, datalabels))
 
 ####### LOSS AND OPTIMIZER #######
 criterion = nn.MSELoss()
@@ -98,18 +89,27 @@ n_epochs = 2
 print("Starting training loop with {} epochs".format(n_epochs))
 loss_vals = []
 for epoch in range(n_epochs):
-    for i, (batch_input, batch_lens, batch_label) in enumerate(train_loader):
+    for i, (batch_input, batch_lens, batch_label) in enumerate(dataloader):
         print("Batch", i, "of epoch", epoch + 1, "of", n_epochs, "epochs")
+        print(batch_lens)
+        [print(vec.shape) for vec in batch_input]
         # reset gradients
         optimizer.zero_grad()
         # propagate input
         nn_output = model(batch_input, batch_lens)
-        try:
-            log_prob_target, log_prob_base, position_base=pdf(batch_label, conditional_input=nn_output)
-        except:
-            print("Error in forward pass probably log_prob_target in previous batch had NaN.")
-            print(nn_output.shape)
-            print(nn_output)
+        nn_output = sigmoid_layer(nn_output)
+        # check range of output
+        for item in nn_output:
+            print(torch.min(item), "-", torch.max(item))
+        
+        #batch_label = batch_label.to('cpu')
+        #print(batch_label.device)
+        # try:
+        log_prob_target, log_prob_base, position_base=pdf(batch_label, conditional_input=nn_output)
+        # except:
+        #     print("Error in forward pass probably log_prob_target in previous batch had NaN.")
+        #     print(nn_output.shape)
+        #     print(nn_output)
         # compute loss
         neg_log_loss = -log_prob_target.mean()
         # compute gradient
@@ -119,7 +119,7 @@ for epoch in range(n_epochs):
         # run test
         # print(nn_output.shape)
         # print(nn_output)
-        # print("log_prob_target", log_prob_target)
+        print("log_prob_target", log_prob_target)
     if epoch%1 == 0:
         print("Epoch", epoch + 1, "loss", neg_log_loss.item())
     loss_vals.append(neg_log_loss.item())

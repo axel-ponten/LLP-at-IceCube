@@ -14,7 +14,9 @@ import numpy as np
 from torchviz import make_dot
 import yaml
 
-import llp_gap_reco.encoder.transformer_encoder as mh_attention_encoder_axel
+import sys
+sys.path.append("../")
+from llp_gap_reco.encoder import CustomTransformerEncoderLayer, CustomTransformerEncoder, LLPTransformerModel
 
 ############################################
 ############## Helper functions ############
@@ -50,7 +52,7 @@ def test_model(model, input, input2=None):
 ###### CustomTransformerEncoderLayer #######
 ############################################
 print("testing CustomTransformerEncoderLayer:")
-layer = mh_attention_encoder_axel.CustomTransformerEncoderLayer(40,
+layer = CustomTransformerEncoderLayer(40,
                                                                 1,
                                                                 device='cuda',
                                                                 dtype=torch.float32,)
@@ -71,7 +73,7 @@ num_layers = 2
 absolute_input_dim = 10 # @TODO: unused for now?
 
 # create the encoder
-encoder = mh_attention_encoder_axel.CustomTransformerEncoder(encoder_layer_args, 
+encoder = CustomTransformerEncoder(encoder_layer_args, 
                  encoder_layer_kwargs,
                  num_layers, 
                  absolute_input_dim)
@@ -85,13 +87,13 @@ print(test_model(encoder, generate_input(3,5,40)))
 print("testing full model:")
 
 # model settings
-config_path = "configs/test_settings.yaml"
+config_path = "../configs/test_settings.yaml"
 config = read_config(config_path)
 kwargs_dict = config["settings"]
 #kwargs_dict = {"input_dim": 20, "output_dim": 128, "io_mlp_hidden_dims": "128"}
 
 # create model
-model = mh_attention_encoder_axel.LLPTransformerModel(**kwargs_dict)
+model = LLPTransformerModel(**kwargs_dict)
 print(model)
 
 # inputs

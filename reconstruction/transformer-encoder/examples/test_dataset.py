@@ -1,3 +1,5 @@
+import sys
+sys.path.append("../")
 from llp_gap_reco.dataset import LLPDataset, llp_collate_fn
 import yaml
 import torch
@@ -18,7 +20,7 @@ dataset = LLPDataset(
     index_file_path,
     file_paths,
     feature_indices_file_path,
-    normalize=True,
+    normalize_data=True,
     normalization_args=normalization_args,
     device="cuda",
     dtype=torch.float32,

@@ -2,6 +2,9 @@ import numpy as np
 import torch
 import yaml
 
+
+import sys
+sys.path.append("../")
 from llp_gap_reco.encoder import LLPTransformerModel
 import jammy_flows
 
@@ -38,7 +41,7 @@ if __name__ == "__main__":
     ####### CREATE MODEL AND PASS FAKE DATA #######
 
     # model settings
-    config_path = "configs/test_settings.yaml"
+    config_path = "../configs/test_settings.yaml"
     with open(config_path, 'r') as stream:
         config = yaml.safe_load(stream)
     kwargs_dict = config["settings"]
