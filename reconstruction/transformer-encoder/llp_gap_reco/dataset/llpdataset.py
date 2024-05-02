@@ -25,7 +25,9 @@ class LLPDataset(Dataset):
         dtype (torch.dtype, optional): Data type for torch. Defaults to None.
     """
     def __init__(self, index_file_path, file_paths, feature_indices_file_path,
-                 normalize_data=True, normalize_target=False, normalization_args=None, device=None, dtype=None):
+                 normalize_data=True, normalize_target=False, normalization_args=None,
+                 device=None, dtype=None,
+                 shuffle_files=False):
         # file with event index info
         self.index_file_path = index_file_path
         self.total_index_info = pd.read_parquet(index_file_path)
@@ -49,6 +51,9 @@ class LLPDataset(Dataset):
 
         # only load one file to memory at a time
         self.current_load_file_index = -1
+
+        # shuffle files upon loading?
+        self.shuffle_files = shuffle_files
 
         # dtype device for torch
         self.device = device
@@ -103,6 +108,9 @@ class LLPDataset(Dataset):
         file_path = self.file_paths[file_index]
         self.df_file = pd.read_parquet(file_path)
         self.current_load_file_index = file_index
+        # shuffle in the file instead of idx, much faster
+        if self.shuffle_files:
+            self.df_file = self.df_file.sample(frac=1).reset_index(drop=True)
 
     def _normalize_data(self, data):
         """ Normalize the data. x = (x-offset)*scale"""
