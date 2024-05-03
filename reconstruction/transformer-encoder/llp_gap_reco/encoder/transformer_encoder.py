@@ -243,8 +243,7 @@ class LLPTransformerModel(nn.Module):
         Returns:
         input_vecs: Depending on attn package, can be list of vecs or a padded tensor.
         """
-            
-        assert(type(datalens)==torch.Tensor), "Require datalens as tensor"
+        assert(isinstance(datalens, torch.Tensor)), "Require datalens as tensor"
 
         data, mask = self._create_xformers_datarep_and_mask(datavecs, datalens)
 
