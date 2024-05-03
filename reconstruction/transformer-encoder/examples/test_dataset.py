@@ -3,12 +3,13 @@ sys.path.append("../")
 from llp_gap_reco.dataset import LLPDataset, llp_collate_fn
 import yaml
 import torch
+import glob
 
 # filepaths
-top_folder = "/home/axel/i3/i3-pq-conversion-files/conversion_testing_ground/"
+top_folder = "/home/axel/i3/i3-pq-conversion-files/DLS-115-5e-6/"
 index_file_path = top_folder + "indexfile.pq"
 feature_indices_file_path = top_folder + "feature_indices.yaml"
-file_paths = [top_folder + "L2test2.000000.pq"]
+file_paths = glob.glob(top_folder + "L2*.pq")
 
 # normalizaton args
 norm_path = "/home/axel/i3/LLP-at-IceCube/reconstruction/transformer-encoder/configs/normalization_args.yaml"

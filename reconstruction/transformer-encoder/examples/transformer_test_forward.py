@@ -87,10 +87,9 @@ print(test_model(encoder, generate_input(3,5,40)))
 print("testing full model:")
 
 # model settings
-config_path = "../configs/test_settings.yaml"
+config_path = "../configs/test_settings_no_cnf.yaml"
 config = read_config(config_path)
 kwargs_dict = config["settings"]
-#kwargs_dict = {"input_dim": 20, "output_dim": 128, "io_mlp_hidden_dims": "128"}
 
 # create model
 model = LLPTransformerModel(**kwargs_dict)

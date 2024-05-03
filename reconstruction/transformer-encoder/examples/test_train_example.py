@@ -1,11 +1,7 @@
 """ Standard pytorch training loop.
-    Example with random input of varying seq. length
-    and random labels.
+
     Just to test that things are working.
     Transformer encoder into a conditional normalizing flow.
-
-    NOTE: it will eventually crash... log prob target will be NaN at some point.
-    This is probably because there is absolutely no correlation in the data.
 
     """
 
@@ -15,20 +11,21 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
 import yaml
+import glob
+import jammy_flows
 
 import sys
 sys.path.append("../")
 from llp_gap_reco.encoder import LLPTransformerModel
 from llp_gap_reco.dataset import LLPDataset, llp_collate_fn
-import jammy_flows
 
 ###### GET DATASET #######
 
 # filepaths
-top_folder = "/home/axel/i3/i3-pq-conversion-files/conversion_testing_ground/"
+top_folder = "/home/axel/i3/i3-pq-conversion-files/DLS-115-5e-6/"
 index_file_path = top_folder + "indexfile.pq"
 feature_indices_file_path = top_folder + "feature_indices.yaml"
-file_paths = [top_folder + "L2test2.000000.pq"]
+file_paths = glob.glob(top_folder + "L2*.pq")
 
 # normalizaton args
 norm_path = "/home/axel/i3/LLP-at-IceCube/reconstruction/transformer-encoder/configs/normalization_args.yaml"
@@ -45,6 +42,7 @@ dataset = LLPDataset(
     normalization_args=normalization_args,
     device="cuda",
     dtype=torch.float32,
+    shuffle_files=True,
 )
 
 # dataloader
@@ -63,7 +61,7 @@ kwargs_dict = config["settings"]
 
 # create transformer encoder and cond. normalizing flow
 model = LLPTransformerModel(**kwargs_dict)
-sigmoid_layer = nn.Sigmoid()
+#sigmoid_layer = nn.Sigmoid()
 pdf = jammy_flows.pdf("e6", "gggggt", conditional_input_dim=config["settings"]["output_dim"])
 
 # init for the gaussian flow
@@ -97,10 +95,9 @@ for epoch in range(n_epochs):
         optimizer.zero_grad()
         # propagate input
         nn_output = model(batch_input, batch_lens)
-        nn_output = sigmoid_layer(nn_output)
-        # check range of output
-        for item in nn_output:
-            print(torch.min(item), "-", torch.max(item))
+        # # check range of output
+        # for item in nn_output:
+        #     print(torch.min(item), "-", torch.max(item))
         
         #batch_label = batch_label.to('cpu')
         #print(batch_label.device)
