@@ -1,6 +1,6 @@
 # some test settings for the full model
 settings:
-    input_dim: 19 # dim of DOM summary statistics
+    input_dim: 16 # dim of DOM summary statistics
     output_dim: 128 # dim of final output layer after encoding (dim passed into conditional normalizing flow)
     io_mlp_hidden_dims: "128" # embedd and final output MLP hidden dims, dash separated string for layers?
     io_add_skip_connection: 0
