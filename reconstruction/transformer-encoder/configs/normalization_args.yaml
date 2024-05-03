@@ -5,14 +5,14 @@ position:
   scale: 0.002 # 1/500m
 time_widths:
   offset: 0.0
-  scale: 1.0
+  scale: 0.001
 abs_times:
   offset: 0.0
-  scale: 1.0
+  scale: 0.001
 log_charges:
   offset: 0.0
   scale: 1.0
-  do_log: true # if for some reason wasnt log(q+1) yet
+  do_log: false # if for some reason wasnt log(q+1) yet
 log_total_charge:
   offset: 0.0
   scale: 1.0
