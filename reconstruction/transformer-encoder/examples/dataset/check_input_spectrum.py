@@ -34,8 +34,8 @@ with open(feature_indices_file_path, "r") as file:
     feature_indices = yaml.safe_load(file)
 
 # save all the inputs
-# n_events = len(dataset)
-n_events = 10000
+n_events = len(dataset)
+# n_events = 10000
 inputs = [[] for i in range(16)]
 for i in range(len(dataset)):
     data, label = dataset[i]
