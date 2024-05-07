@@ -12,7 +12,6 @@ abs_times:
 log_charges:
   offset: 0.0
   scale: 1.0
-  do_log: false # if for some reason wasnt log(q+1) yet
 log_total_charge:
   offset: 0.0
   scale: 1.0
