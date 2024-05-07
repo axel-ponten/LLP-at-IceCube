@@ -101,3 +101,50 @@ test_dataloader(shuffle=False)
 print("\n\n##### Shuffled (twice instantiated, should be different) #####")
 test_dataloader(shuffle=True)
 test_dataloader(shuffle=True)
+
+#### CHECK THAT WE DONT MIX EVENTS ####
+print("\n\n##### CHECK THAT WE DONT MIX INPUT/TARGET #####")
+# create dataset
+dataset = LLPDataset(
+    index_file_path,
+    file_paths,
+    feature_indices_file_path,
+    normalize_data=True,
+    normalization_args=normalization_args,
+    device="cuda",
+    dtype=torch.float32,
+    shuffle_files=False,
+)
+
+dataset_shuffle = LLPDataset(
+    index_file_path,
+    file_paths,
+    feature_indices_file_path,
+    normalize_data=True,
+    normalization_args=normalization_args,
+    device="cuda",
+    dtype=torch.float32,
+    shuffle_files=True,
+)
+
+# find row matching event id and run id
+event_id = 77
+run_id = 777700112
+
+
+index_row = dataset.total_index_info[(dataset.total_index_info["event_id"] == event_id) & (dataset.total_index_info["run_id"] == run_id)]
+index_row_shuffle = dataset_shuffle.total_index_info[(dataset_shuffle.total_index_info["event_id"] == event_id) & (dataset_shuffle.total_index_info["run_id"] == run_id)]
+print("Index row")
+print(index_row)
+print("Index row shuffled")
+print(index_row_shuffle)
+
+print("Event from unshuffled")
+data, label = dataset[index_row.index.item()]
+print("label", label)
+print("data", data[:3])
+
+print("Event from shuffled")
+data, label = dataset_shuffle[index_row_shuffle.index.item()]
+print("label", label)
+print("data", data[:3])
