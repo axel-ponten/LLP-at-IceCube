@@ -5,7 +5,7 @@ import glob
 import matplotlib.pyplot as plt
 
 # filepaths
-top_folder = "/home/axel/i3/i3-pq-conversion-files/DLS-115-5e-6/"
+top_folder = "/home/axel/i3/i3-pq-conversion-files/DarkLeptonicScalar.mass-110.eps-1e-5.nevents-50000_ene_1e3_2e5_gap_100_240503.208637138/"
 index_file_path = top_folder + "indexfile.pq"
 feature_indices_file_path = top_folder + "feature_indices.yaml"
 file_paths = glob.glob(top_folder + "L2*.pq")
@@ -35,12 +35,15 @@ with open(feature_indices_file_path, "r") as file:
 
 # save all the inputs
 n_events = len(dataset)
-# n_events = 10000
-inputs = [[] for i in range(16)]
-for i in range(len(dataset)):
+n_features = dataset[0][0].shape[1]
+print(f"Number of events: {n_events}")
+print(f"Number of features: {n_features}")
+n_events = 10
+inputs = [[] for i in range(n_features)]
+for i in range(n_events):
     data, label = dataset[i]
     for k in range(data.shape[0]):
-        for j in range(16):
+        for j in range(n_features):
             inputs[j].append(data[k,j].item())
     if i%500 == 0:
         print(f"Processed {i} events")
@@ -66,6 +69,8 @@ def get_name_from_index(index, feature_indices):
 for i in range(4):
     for j in range(4):
         tile_num = i*4 + j
+        if tile_num >= n_features:
+            break
         feature_type = get_name_from_index(tile_num, feature_indices)
         axs[i, j].hist(inputs[i*4+j], bins=10)
         axs[i, j].set_title(f'Input {i*4+j+1}')
