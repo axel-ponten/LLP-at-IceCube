@@ -68,7 +68,8 @@ def plot_event(data, label):
     plt.show()
 
 # filepaths
-top_folder = "/home/axel/i3/i3-pq-conversion-files/DLS-115-5e-6/"
+#top_folder = "/home/axel/i3/i3-pq-conversion-files/DLS-115-5e-6/"
+top_folder = "/home/axel/i3/i3-pq-conversion-files/DarkLeptonicScalar.mass-110.eps-1e-5.nevents-50000_ene_1e3_2e5_gap_100_240503.208637138/"
 index_file_path = top_folder + "indexfile.pq"
 total_index_info = pd.read_parquet(index_file_path)
 feature_indices_file_path = top_folder + "feature_indices.yaml"
@@ -82,7 +83,7 @@ dataset = LLPDataset(
     normalize_data=False,
     device="cuda",
     dtype=torch.float32,
-    shuffle_files=True,
+    shuffle_files=False,
 )
 
 dataloader = DataLoader(
