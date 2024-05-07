@@ -33,7 +33,7 @@ class LLPDataset(Dataset):
         self.total_index_info = pd.read_parquet(index_file_path)
 
         # data files
-        self.file_paths = file_paths
+        self.file_paths = sorted(file_paths)
         self.num_events = len(self.total_index_info)
 
         # feature indices in data vector. dictionary with keys as feature types and values as indices
