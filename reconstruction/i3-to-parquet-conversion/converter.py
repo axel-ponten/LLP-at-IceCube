@@ -150,7 +150,7 @@ class Converter(object):
 
                     # check that frame is good
                     if(not self.check_good_frame(frame)):
-                        print("Bad frame, skip:", frame)
+                        #print("Bad frame, skip:", frame)
                         continue
 
                     this_file_f_counter+=1
