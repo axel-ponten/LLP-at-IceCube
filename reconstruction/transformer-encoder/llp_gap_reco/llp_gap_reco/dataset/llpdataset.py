@@ -28,7 +28,8 @@ class LLPDataset(Dataset):
     def __init__(self, index_file_path, file_paths, feature_indices_file_path,
                  normalize_data=True, normalize_target=False, normalization_args=None,
                  device=None, dtype=None,
-                 shuffle_files=False):
+                 shuffle_files=False,
+                 dataset_type="training"):
         # file with event index info
         self.index_file_path = index_file_path
         self.total_index_info = pd.read_parquet(index_file_path)
@@ -66,6 +67,9 @@ class LLPDataset(Dataset):
         if self.device is not None:
             assert self.device in ["cpu", "cuda"]
         self.dtype = dtype
+        
+        # dataset type
+        self.dataset_type = dataset_type
         
 
     def __len__(self):
