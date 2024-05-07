@@ -417,7 +417,7 @@ class Converter(object):
         
         # check that pulse series is in frame
         if(not self.pulse_series_name in frame):
-            print("No", self.pulse_series_name, "in frame", frame["I3EventHeader"].sub_event_stream)
+            print("No", self.pulse_series_name, "in frame with subeventstream", frame["I3EventHeader"].sub_event_stream)
             return False
         
         # is it MC frame?
