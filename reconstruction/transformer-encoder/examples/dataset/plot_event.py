@@ -12,7 +12,7 @@ import argparse
 def plot_event(data, label):
     # List of 3D positions
     hits = data.squeeze()[:,:4].cpu().numpy().tolist()
-    print(hits)
+    
     x = [pos[0] for pos in hits]
     y = [pos[1] for pos in hits]
     z = [pos[2] for pos in hits]
