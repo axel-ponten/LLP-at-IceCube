@@ -19,4 +19,4 @@ python train_no_cnf.py \
  --modelspath "$modelspath" \
  --configpath "$configpath" \
  --filenamestart "$filenamestart" \
- --do_plots "$do_plots"
+ --doplots "$do_plots"
