@@ -60,6 +60,8 @@ else:
     print("Warning: model directory already exists. Rename it to avoid overwriting models.")
     # exit()
 
+# copy model config file to models directory
+os.system("cp " + config_path + " " + models_path)
 
 # filepaths
 index_file_path = top_folder + "indexfile.pq"
@@ -161,8 +163,8 @@ for epoch in range(n_epochs):
             with torch.no_grad():
                 nn_output = model(batch_input, batch_lens)
                 print("Some predictions/labels:")
-                outputs = nn_output[0:3].tolist()
-                labels = batch_label[0:3].tolist()
+                outputs = nn_output[0:2].tolist()
+                labels = batch_label[0:2].tolist()
                 for a, b in zip(outputs, labels):
                     print("Pred", a)
                     print("True", b)

@@ -1,0 +1,26 @@
+# some test settings for only transformer encoder
+settings:
+    input_dim: 11 # dim of DOM summary statistics
+    output_dim: 6 # dim of final output layer after encoding (dim passed into conditional normalizing flow)
+    io_mlp_hidden_dims: "128" # embedd and final output MLP hidden dims, dash separated string for layers?
+    io_add_skip_connection: 0
+    attn_io_projection_type: "single_self" # don't change this
+    attn_do_perlayer_out_projection: 1 # mlp between sa and ff block
+    skip_input_projection: 0 # skip embedding MLP?
+    attn_computational_dim: 128 # embedded dim, -1 for same as output dim
+    attn_num_layers: 5 # number of transformer layers
+    attn_num_heads_per_layer: 1 # attention heads. only 1 supported for now!!
+    attn_use_layer_norm_1: 1
+    attn_use_layer_norm_2: 1
+    attn_use_extra_layer_norm: 0
+    attn_layer_norm_first: 1
+    attn_use_residual_addition: 1 # 0 (no res con), 1 (both mlp & sa res con), 2 (only sa res con)
+    dtype: "float32" # important for xformers algorithm
+    attn_projection_type: "joint_qkv" # use joint_qkv. options = ["joint_qkv", "single_qkv", "single_self"]
+    attn_perform_final_mapping: 1 # final MLP?
+    attn_package: "xformers" # only this is supported right now
+    attn_dropout: 0.1
+    attn_internal_mlp_dim: 128 # dim of feedforward in CustomTransformerEncoderLayer
+    attn_use_weighted_mean: 0
+    attn_aggregation_mode: "mean"
+    attn_operator: "none" # which xformers op? only supports "none" for now

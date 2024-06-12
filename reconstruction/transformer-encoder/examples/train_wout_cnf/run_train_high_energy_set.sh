@@ -5,7 +5,7 @@ epochs=400
 batchsize=32
 learningrate=0.0001
 modelspath=$PWD"/high_energy_set_models/"
-configpath="/data/user/axelpo/LLP-at-IceCube/reconstruction/transformer-encoder/configs/test_settings_no_cnf.yaml"
+configpath="/data/user/axelpo/LLP-at-IceCube/reconstruction/transformer-encoder/configs/model_no_cnf_high_energy_no_percentiles.yaml"
 filenamestart="base"
 do_plots=true
 
