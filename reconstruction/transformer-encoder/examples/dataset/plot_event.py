@@ -1,5 +1,3 @@
-import sys
-sys.path.append("../")
 from llp_gap_reco.dataset import LLPDataset, llp_collate_fn
 from torch.utils.data import DataLoader
 import yaml
@@ -9,10 +7,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
+import argparse
 
 def plot_event(data, label):
     # List of 3D positions
-    # positions = [(1, 2, 3), (4, 5, 6), (7, 8, 9)]
     hits = data.squeeze()[:,:4].cpu().numpy().tolist()
     print(hits)
     x = [pos[0] for pos in hits]
@@ -67,35 +65,68 @@ def plot_event(data, label):
     # Show the plot
     plt.show()
 
-# filepaths
-#top_folder = "/home/axel/i3/i3-pq-conversion-files/DLS-115-5e-6/"
-top_folder = "/home/axel/i3/i3-pq-conversion-files/DarkLeptonicScalar.mass-110.eps-1e-5.nevents-50000_ene_1e3_2e5_gap_100_240503.208637138/"
-index_file_path = top_folder + "indexfile.pq"
-total_index_info = pd.read_parquet(index_file_path)
-feature_indices_file_path = top_folder + "feature_indices.yaml"
-file_paths = glob.glob(top_folder + "L2*.pq")
 
-# create dataset
-dataset = LLPDataset(
-    index_file_path,
-    file_paths,
-    feature_indices_file_path,
-    normalize_data=False,
-    device="cuda",
-    dtype=torch.float32,
-    shuffle_files=False,
-)
+if __name__ == "__main__":
+    # Create the argument parser
+    parser = argparse.ArgumentParser(description='Process top folder, filename start, and nevents.')
 
-dataloader = DataLoader(
-    dataset,
-    batch_size=8,
-    shuffle=False,
-    collate_fn=llp_collate_fn,
-)
-# get event
-for datavecs, datalens, labels in dataloader:
-    for i in range(len(datavecs)):
-        data = datavecs[i]
-        label = labels[i]
-        plot_event(data, label)
-    break
+    # Add the arguments
+    parser.add_argument('--top_folder', type=str, help='Path to the top folder')
+    parser.add_argument('--filename_start', type=str, default='base', help='Start of the filename for glob')
+    parser.add_argument('--nevents', type=int, default=5, help='Number of events. -1 for all events')
+    parser.add_argument('--shuffle', type=bool, default=False, help='Shuffle the events')
+    
+    # Parse the arguments
+    args = parser.parse_args()
+
+    # Get the values from the arguments
+    top_folder = args.top_folder
+    filename_start = args.filename_start
+    nevents = args.nevents
+    shuffle_files = args.shuffle
+
+    # input checks
+    if nevents < -1:
+        raise ValueError("nevents must be -1 or greater")
+    # add trailing slash to top folder
+    if top_folder[-1] != "/":
+        top_folder += "/"
+
+    # filepaths
+    index_file_path = top_folder + "indexfile.pq"
+    total_index_info = pd.read_parquet(index_file_path)
+    feature_indices_file_path = top_folder + "feature_indices.yaml"
+    file_paths = glob.glob(top_folder + filename_start + "*.pq")
+
+    # create dataset
+    dataset = LLPDataset(
+        index_file_path,
+        file_paths,
+        feature_indices_file_path,
+        normalize_data=False,
+        device="cuda",
+        dtype=torch.float32,
+        shuffle_files=shuffle_files,
+    )
+
+    dataloader = DataLoader(
+        dataset,
+        batch_size=8,
+        shuffle=False,
+        collate_fn=llp_collate_fn,
+    )
+    
+    # define a function to plot events
+    def plot_loop(dataloader, nevents):
+        counter = 0
+        for datavecs, datalens, labels in dataloader:
+            for i in range(len(datavecs)):
+                if counter == nevents:
+                    return
+                data = datavecs[i]
+                label = labels[i]
+                plot_event(data, label)
+                counter += 1
+    
+    # plot events
+    plot_loop(dataloader, nevents)
