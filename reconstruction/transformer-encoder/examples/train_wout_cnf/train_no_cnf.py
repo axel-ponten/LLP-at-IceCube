@@ -11,10 +11,12 @@ import torch.nn as nn
 import yaml
 import glob
 import os
+import argparse
+import time
 
 from llp_gap_reco.encoder import LLPTransformerModel
 from llp_gap_reco.dataset import LLPDataset, LLPSubset, llp_collate_fn
-import argparse
+
 
 ###### GET DATASET #######
 
@@ -129,6 +131,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 ####### TRAIN #######
 print("Starting training loop with {} epochs".format(n_epochs))
+print("#####################################")
 train_loss_vals = []
 test_loss_vals = []
 for epoch in range(n_epochs):
@@ -136,9 +139,10 @@ for epoch in range(n_epochs):
     trainloader.dataset.shuffle()
     model.train()
     train_loss = 0
+    start_time = time.time()  # Start the timer for the epoch
     for i, (batch_input, batch_lens, batch_label) in enumerate(trainloader):
         if i%1000 == 0:
-            print("Batch", i, "of epoch", epoch + 1, "of", n_epochs, "epochs")
+            print("Batch", str(i) + "/" + str(train_size//batch_size), " of epoch", epoch + 1, "of", n_epochs, "epochs")
         # reset gradients
         optimizer.zero_grad()
         # propagate input
@@ -156,8 +160,12 @@ for epoch in range(n_epochs):
             model.eval()
             with torch.no_grad():
                 nn_output = model(batch_input, batch_lens)
-                print("some output", nn_output[0:3])
-                print("some label", batch_label[0:3])
+                print("Some predictions/labels:")
+                outputs = nn_output[0:3].tolist()
+                labels = batch_label[0:3].tolist()
+                for a, b in zip(outputs, labels):
+                    print("Pred", a)
+                    print("True", b)
                 # for name, param in model.named_parameters():
                 #     print(name, param.grad.abs().sum())
             model.train()
@@ -180,8 +188,11 @@ for epoch in range(n_epochs):
     print("Last test output:", nn_output[0:3])
     print("Last test label:", batch_label[0:3])
 
-    print("Epoch", epoch + 1, "train loss", train_loss, ": test loss", test_loss)
-
+    end_time = time.time()  # Stop the timer for the epoch
+    epoch_time = end_time - start_time  # Calculate the time taken for the epoch
+    print("Epoch", epoch + 1, "in", epoch_time, "s. Train loss", train_loss, ": Test loss", test_loss)
+    print("#####################################")
+    
     # save model every 5 epochs
     if epoch % 5 == 0:
         model_path = models_path + "model_no_cnf_epoch_{}.pth".format(epoch)
