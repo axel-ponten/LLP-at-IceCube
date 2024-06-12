@@ -2,7 +2,7 @@
 """
 
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Subset
 import pandas as pd
 import yaml
 import numpy as np
@@ -144,6 +144,14 @@ class LLPDataset(Dataset):
             self.total_index_info = grouped_index_info.sample(frac=1).reset_index(drop=True)
         else:
             print("INFO! Called LLPDataset.shuffle() but shuffle_files is False. No shuffling done.")
+
+
+class LLPSubset(Subset):
+    def __init__(self, llpdataset: LLPDataset, indices) -> None:
+        super().__init__(llpdataset, indices)
+    
+    def shuffle(self):
+        self.dataset.shuffle()
 
 ###### COLLATE FUNCTION FOR DATALOADER ######
 def llp_collate_fn(batch):
