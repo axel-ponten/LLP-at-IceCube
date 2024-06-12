@@ -43,7 +43,7 @@ learning_rate = args.learningrate
 models_path = args.modelspath
 config_path = args.configpath
 filename_start = args.filenamestart
-do_plots = args.do_plots
+do_plots = args.doplots
 
 # add trailing slash to top folder and models path
 if top_folder[-1] != "/":
