@@ -144,6 +144,8 @@ class LLPDataset(Dataset):
             self.total_index_info = grouped_index_info.sample(frac=1).reset_index(drop=True)
         else:
             print("INFO! Called LLPDataset.shuffle() but shuffle_files is False. No shuffling done.")
+
+###### COLLATE FUNCTION FOR DATALOADER ######
 def llp_collate_fn(batch):
     """ Custom collate function for LLP data to match transformer input. """
     datavecs = [item[0].unsqueeze(0) for item in batch]
