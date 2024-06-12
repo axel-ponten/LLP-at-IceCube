@@ -58,10 +58,7 @@ class LLPDataset(Dataset):
         print("INFO! Using dataset", self.__class__.__name__, ": Use init attr `shuffle_files` and set shuffle=False in Dataloader.")
         self.shuffle_files = shuffle_files
         if self.shuffle_files:
-            # shuffle events with same file index
-            grouped_index_info = self.total_index_info.groupby("file_index")
-            self.total_index_info = grouped_index_info.sample(frac=1).reset_index(drop=True)
-
+            self.shuffle()
         # dtype device for torch
         self.device = device
         if self.device is not None:
@@ -138,7 +135,15 @@ class LLPDataset(Dataset):
             target *= self.normalization_args["position"]["scale"]
         return target
 
-
+    def shuffle(self):
+        """ Shuffle the files. """
+        # shuffle events with same file index
+        if self.shuffle_files:
+            # shuffle events with same file index
+            grouped_index_info = self.total_index_info.groupby("file_index")
+            self.total_index_info = grouped_index_info.sample(frac=1).reset_index(drop=True)
+        else:
+            print("INFO! Called LLPDataset.shuffle() but shuffle_files is False. No shuffling done.")
 def llp_collate_fn(batch):
     """ Custom collate function for LLP data to match transformer input. """
     datavecs = [item[0].unsqueeze(0) for item in batch]
