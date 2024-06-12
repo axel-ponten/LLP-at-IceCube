@@ -23,6 +23,7 @@ class Converter(object):
                 target_folder,
                 encoding_type="mod_harnisch",
                 pulse_series_name="InIcePulses",
+                sub_event_stream=None,
                 gcdfile="/data/sim/sim-new/downloads/GCD/GeoCalibDetectorStatus_2021.Run135903.T00S1.Pass2_V1b_Snow211115.i3.gz",
                 num_events_per_file=1000, # how many events per .pq file
                 num_per_row_group=100, # 100 seems a reasonable size
@@ -37,6 +38,8 @@ class Converter(object):
         # conversion settings
         self.encoding_type = encoding_type
         self.pulse_series_name = pulse_series_name
+        self.sub_event_stream = sub_event_stream
+        assert self.sub_event_stream in ["InIceSplit", "NullSplit", None], "Unknown split " + self.sub_event_stream
         self.num_events_per_file=num_events_per_file
         self.num_per_row_group=num_per_row_group
         assert(self.num_events_per_file%self.num_per_row_group==0), (self.num_events_per_file, self.num_per_row_group)
@@ -132,15 +135,22 @@ class Converter(object):
                 # go through frames in i3 file
                 while( self.num_appended<self.num_events_per_file and f.more() ):
                     # @TODO: option for P vs Q frame
+                    # pop Q or P frame
                     try:
-                        frame = f.pop_daq()
+                        if self.sub_event_stream is not None:
+                            frame = f.pop_physics()
+                            # reach desired sub_event_stream
+                            while(frame["I3EventHeader"].sub_event_stream != self.sub_event_stream):
+                                frame = f.pop_physics()
+                        else:
+                            frame = f.pop_daq()
                     except:
                         print("could not pop frame")
                         break
 
                     # check that frame is good
                     if(not self.check_good_frame(frame)):
-                        print("Bad frame, skip:", frame)
+                        #print("Bad frame, skip:", frame)
                         continue
 
                     this_file_f_counter+=1
@@ -404,6 +414,12 @@ class Converter(object):
 
     def check_good_frame(self, frame):
         # @TODO: implement
+        
+        # check that pulse series is in frame
+        if(not self.pulse_series_name in frame):
+            print("No", self.pulse_series_name, "in frame with subeventstream", frame["I3EventHeader"].sub_event_stream)
+            return False
+        
         # is it MC frame?
         is_mc = self.is_frame_mc(frame)
 

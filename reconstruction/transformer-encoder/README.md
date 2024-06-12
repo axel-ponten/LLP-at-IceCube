@@ -48,6 +48,8 @@ model = LLPTransformerModel(**kwargs_dict)
 ### Dataset
 The package also contains a pytorch custom dataset with a custom collate_fn (for creating batches for `LLPTransformerModel`) imported as `from llp_gap_reco.dataset import LLPDataset, llp_collate_fn`. Normalization settings need to be provided, and are found in e.g. `configs/normalization_args.yaml`. Index file and feature indices needs to be provided. These are produced together with the .i3 to .pq conversion.
 
+To improve performance, the **shuffling of events** is only done within each .pq files. We only want to open a .pq file once, so when shuffling is set to true (using flag `shuffle_files`), we scramble the events by grouping the index file by file index and then shuffling the rows (see `llp_gap_reco.dataset.llpdataset.LLPDataset` init function for details). ***This means that you should set shuffle = False in the dataloader!***. Otherwise you will most likely open and close a file with every event.
+
 Example of creating dataset and dataloader:
 
 ```python
@@ -77,6 +79,7 @@ dataset = LLPDataset(
     normalization_args=normalization_args,
     device="cuda",
     dtype=torch.float32,
+    shuffle_files=True,
 )
 
 # dataloader

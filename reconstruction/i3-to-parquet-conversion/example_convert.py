@@ -30,6 +30,9 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--pulse-series-name", action="store",
             type=str, default="InIcePulses", dest="pulse-series-name",
             help="Name of pulse series to use for pulse extraction.")
+    parser.add_argument("-s", "--sub-event-stream", action="store",
+            default=None, dest="sub-event-stream",
+            help="Sub event stream. None (default) for DAQ frames, 'InIceSplit' for P frame.")
     
     params = vars(parser.parse_args())  # dict()
 
@@ -49,6 +52,7 @@ if __name__ == "__main__":
             target_folder = params["target-folder"],
             encoding_type=params["encoding"],
             pulse_series_name=params["pulse-series-name"],
+            sub_event_stream=params["sub-event-stream"],
             gcdfile=params["gcdfile"],
             num_events_per_file=params["num-events-per-file"],
             num_per_row_group=params["row-group-number"],

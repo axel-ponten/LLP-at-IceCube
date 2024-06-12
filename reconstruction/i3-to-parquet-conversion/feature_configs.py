@@ -4,6 +4,36 @@
 feature_configs=dict()
 
 # @TODO: add LLP feature config
+feature_configs["llp_no_percentile"]=\
+"""
+pulse_key: PULSEKEY_PLACEHOLDER
+
+dom_exclusions:
+  exclusions:
+  - SaturationWindows
+  - BadDomsList
+  - CalibrationErrata
+  partial_exclusion: false
+
+# Define pulse modifier to use. Leave empty if pulses are not modified
+pulse_modifier:
+  class: ChargeWeightedMeanTimePulseModifier
+  kwargs: {}
+
+feature_config:
+    features:
+    - class: TotalCharge
+      kwargs: {}
+    - class: ChargeUntilT
+      kwargs:
+        times: [10, 50, 100]
+    - class: TSpread
+    - class: ChargeWeightedStd
+    - class: ChargeWeightedMean
+    - class: TFirstPulse
+      kwargs: {}
+"""
+
 feature_configs["llp_test_config"]=\
 """
 pulse_key: PULSEKEY_PLACEHOLDER

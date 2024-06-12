@@ -23,17 +23,19 @@ class LLPDataset(Dataset):
             Defaults to None.
         device (str, optional): Device to be used for torch. Should be either "cpu" or "cuda". Defaults to None.
         dtype (torch.dtype, optional): Data type for torch. Defaults to None.
+        shuffle_files (bool, optional): Flag indicating whether to shuffle the files. Defaults to False.
     """
     def __init__(self, index_file_path, file_paths, feature_indices_file_path,
                  normalize_data=True, normalize_target=False, normalization_args=None,
                  device=None, dtype=None,
-                 shuffle_files=False):
+                 shuffle_files=False,
+                 dataset_type="training"):
         # file with event index info
         self.index_file_path = index_file_path
         self.total_index_info = pd.read_parquet(index_file_path)
 
         # data files
-        self.file_paths = file_paths
+        self.file_paths = sorted(file_paths) # make filelist match index file
         self.num_events = len(self.total_index_info)
 
         # feature indices in data vector. dictionary with keys as feature types and values as indices
@@ -52,14 +54,19 @@ class LLPDataset(Dataset):
         # only load one file to memory at a time
         self.current_load_file_index = -1
 
-        # shuffle files upon loading?
+        # shuffle events within a file?
+        print("INFO! Using dataset", self.__class__.__name__, ": Use init attr `shuffle_files` and set shuffle=False in Dataloader.")
         self.shuffle_files = shuffle_files
-
+        if self.shuffle_files:
+            self.shuffle()
         # dtype device for torch
         self.device = device
         if self.device is not None:
             assert self.device in ["cpu", "cuda"]
         self.dtype = dtype
+        
+        # dataset type
+        self.dataset_type = dataset_type
         
 
     def __len__(self):
@@ -74,6 +81,9 @@ class LLPDataset(Dataset):
         # is data already loaded? if not, load new file into memory
         if self.current_load_file_index != file_index:
             self.load_file(file_index)
+            # assert that you opened the right file
+            assert self.df_file.iloc[index_within_file]["event_id"] == index_row["event_id"] , "Event ID mismatch. Are filepaths sorted?"
+            assert self.df_file.iloc[index_within_file]["run_id"]   == index_row["run_id"] , "Run ID mismatch. Are filepaths sorted?"
         
         # get data and label
         data = self.df_file.iloc[index_within_file]["data_encoded"] # 1d arr of obj, need to stack
@@ -108,9 +118,6 @@ class LLPDataset(Dataset):
         file_path = self.file_paths[file_index]
         self.df_file = pd.read_parquet(file_path)
         self.current_load_file_index = file_index
-        # shuffle in the file instead of idx, much faster
-        if self.shuffle_files:
-            self.df_file = self.df_file.sample(frac=1).reset_index(drop=True)
 
     def _normalize_data(self, data):
         """ Normalize the data. x = (x-offset)*scale"""
@@ -128,7 +135,17 @@ class LLPDataset(Dataset):
             target *= self.normalization_args["position"]["scale"]
         return target
 
+    def shuffle(self):
+        """ Shuffle the files. """
+        # shuffle events with same file index
+        if self.shuffle_files:
+            # shuffle events with same file index
+            grouped_index_info = self.total_index_info.groupby("file_index")
+            self.total_index_info = grouped_index_info.sample(frac=1).reset_index(drop=True)
+        else:
+            print("INFO! Called LLPDataset.shuffle() but shuffle_files is False. No shuffling done.")
 
+###### COLLATE FUNCTION FOR DATALOADER ######
 def llp_collate_fn(batch):
     """ Custom collate function for LLP data to match transformer input. """
     datavecs = [item[0].unsqueeze(0) for item in batch]
