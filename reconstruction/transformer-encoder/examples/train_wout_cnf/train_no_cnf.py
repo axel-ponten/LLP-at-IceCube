@@ -13,7 +13,7 @@ import glob
 import os
 
 from llp_gap_reco.encoder import LLPTransformerModel
-from llp_gap_reco.dataset import LLPDataset, llp_collate_fn
+from llp_gap_reco.dataset import LLPDataset, LLPSubset, llp_collate_fn
 import argparse
 
 ###### GET DATASET #######
@@ -54,6 +54,10 @@ if models_path[-1] != "/":
 # create model dir if it does not exist
 if not os.path.exists(models_path):
     os.makedirs(models_path)
+else:
+    print("Warning: model directory already exists. Rename it to avoid overwriting models.")
+    # exit()
+
 
 # filepaths
 index_file_path = top_folder + "indexfile.pq"
@@ -64,7 +68,6 @@ file_paths = glob.glob(top_folder + filename_start + "*.pq")
 with open(norm_path, "r") as file:
     normalization_args = yaml.safe_load(file)
 
-# create dataset
 dataset = LLPDataset(
     index_file_path,
     file_paths,
@@ -78,16 +81,26 @@ dataset = LLPDataset(
 )
 
 # split dataset into train and test
-
-train_size = int(0.8 * len(dataset))
+nfiles = len(file_paths)
+nfiles_train = int(0.8*nfiles)
+nfiles_test = nfiles - nfiles_train
+events_per_file = len(dataset)//nfiles
+train_size = int(nfiles_train*events_per_file)
 test_size = len(dataset) - train_size
+print("#####################")
+print("Dataset info:")
+print("Events per .pq file", events_per_file)
+print("Nfiles train/test", nfiles_train, nfiles_test)
 print("Train size:", train_size)
 print("Test size:", test_size)
+print("Percentage of train data:", train_size/len(dataset)*100.0, "%")
+print("#####################")
 # Created using indices from 0 to train_size.
-train_dataset = torch.utils.data.Subset(dataset, range(train_size))
-
+# train_dataset = torch.utils.data.Subset(dataset, range(train_size))
+train_dataset = LLPSubset(dataset, range(train_size))
 # Created using indices from train_size to train_size + test_size.
-test_dataset = torch.utils.data.Subset(dataset, range(train_size, train_size + test_size))
+# test_dataset = torch.utils.data.Subset(dataset, range(train_size, train_size + test_size))
+test_dataset = LLPSubset(dataset, range(train_size, train_size + test_size))
 
 # train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
