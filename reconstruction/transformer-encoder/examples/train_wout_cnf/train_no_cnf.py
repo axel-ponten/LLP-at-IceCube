@@ -195,6 +195,10 @@ for epoch in range(n_epochs):
     print("Epoch", epoch + 1, "in", epoch_time, "s. Train loss", train_loss, ": Test loss", test_loss)
     print("#####################################")
     
+    # save losses to csv
+    df = pd.DataFrame({"train_loss": train_loss_vals, "test_loss": test_loss_vals})
+    df.to_csv(models_path + "loss_no_cnf.csv")
+    
     # save model every 5 epochs
     if epoch % 5 == 0:
         model_path = models_path + "model_no_cnf_epoch_{}.pth".format(epoch)
@@ -203,10 +207,6 @@ for epoch in range(n_epochs):
 ####### SAVE FINAL MODEL #######
 model_path = models_path + "model_no_cnf_final.pth"
 torch.save(model.state_dict(), model_path)
-
-# save losses to csv
-df = pd.DataFrame({"train_loss": train_loss_vals, "test_loss": test_loss_vals})
-df.to_csv(models_path + "loss_no_cnf.csv")
 
 ####### PLOT LOSS #######
 if do_plots:
