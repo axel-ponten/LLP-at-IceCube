@@ -68,7 +68,7 @@ def plot_event(data, label):
 
 if __name__ == "__main__":
     # Create the argument parser
-    parser = argparse.ArgumentParser(description='Process top folder, filename start, and nevents.')
+    parser = argparse.ArgumentParser(description='Plot some events.')
 
     # Add the arguments
     parser.add_argument('--top_folder', type=str, help='Path to the top folder')
