@@ -58,7 +58,7 @@ if not os.path.exists(models_path):
     os.makedirs(models_path)
 else:
     print("Warning: model directory already exists. Rename it to avoid overwriting models.")
-    # exit()
+    exit()
 
 # copy model config file to models directory
 os.system("cp " + config_path + " " + models_path)
