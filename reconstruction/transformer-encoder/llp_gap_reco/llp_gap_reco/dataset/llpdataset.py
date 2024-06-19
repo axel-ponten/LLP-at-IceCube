@@ -145,6 +145,34 @@ class LLPDataset(Dataset):
         else:
             print("INFO! Called LLPDataset.shuffle() but shuffle_files is False. No shuffling done.")
 
+class UnlabeledLLPDataset(LLPDataset):
+    """
+    Dataset class for loading and preprocessing unlabeled data.
+    """
+    def __getitem__(self, idx):
+        # get index info row
+        index_row = self.total_index_info.iloc[idx]
+        file_index = index_row["file_index"]
+        index_within_file = index_row["index_within_file"]
+        
+        # is data already loaded? if not, load new file into memory
+        if self.current_load_file_index != file_index:
+            self.load_file(file_index)
+            # assert that you opened the right file
+            assert self.df_file.iloc[index_within_file]["event_id"] == index_row["event_id"] , "Event ID mismatch. Are filepaths sorted?"
+            assert self.df_file.iloc[index_within_file]["run_id"]   == index_row["run_id"] , "Run ID mismatch. Are filepaths sorted?"
+        
+        # get data
+        data = self.df_file.iloc[index_within_file]["data_encoded"] # 1d arr of obj, need to stack
+        
+        # transform from 1D np arr of obj to 2D torch.tensor
+        data = self.transform_data(data)
+        
+        # normalize
+        if self.normalize_data:
+            data = self._normalize_data(data)
+        
+        return data
 
 class LLPSubset(Subset):
     def __init__(self, llpdataset: LLPDataset, indices) -> None:
@@ -160,4 +188,11 @@ def llp_collate_fn(batch):
     datalens = torch.tensor([item.shape[1] for item in datavecs], device=datavecs[0].device)
     label = [item[1] for item in batch]
     label = torch.stack(label, dim=0)
+    return datavecs, datalens, label
+
+def llp_collate_unlabeled_fn(batch):
+    """ Custom collate function for unlabeled data to match transformer input. """
+    datavecs = [item.unsqueeze(0) for item in batch]
+    datalens = torch.tensor([item.shape[1] for item in datavecs], device=datavecs[0].device)
+    label = [None for item in batch]
     return datavecs, datalens, label

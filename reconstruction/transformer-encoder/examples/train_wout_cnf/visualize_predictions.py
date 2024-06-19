@@ -1,4 +1,4 @@
-from llp_gap_reco.dataset import LLPDataset, LLPSubset, llp_collate_fn
+from llp_gap_reco.dataset import LLPDataset, UnlabeledLLPDataset, LLPSubset, llp_collate_fn, llp_collate_unlabeled_fn
 from llp_gap_reco.encoder import LLPTransformerModel
 from torch.utils.data import DataLoader
 import yaml
@@ -14,7 +14,6 @@ import argparse
 def distance(x1, y1, z1, x2, y2, z2):
     return np.sqrt((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)
 
-
 def unnormalize_hits(hits, normalization_args):
     """ Normalize the data. x = (x-offset)*scale"""
     # for each feature type ("log_charges", "position", "abs_time", etc.)
@@ -24,7 +23,7 @@ def unnormalize_hits(hits, normalization_args):
         hits += normalization_args["position"]["offset"]
     return hits
 
-def plot_event(data, label, prediction, normalization_args = None):
+def plot_event(data, prediction, label = None, normalization_args = None):
     # List of 3D positions
     hits = data.squeeze()[:,:3].cpu().numpy()
     charges = data.squeeze()[:,3].cpu().numpy().tolist()
@@ -40,13 +39,14 @@ def plot_event(data, label, prediction, normalization_args = None):
     s = [scale*(10**charge-1) for charge in charges] # total charge from log(1+charge)
 
     # label
-    label = label.cpu().numpy().tolist()
-    prod_x = label[0]
-    prod_y = label[1]
-    prod_z = label[2]
-    decay_x = label[3]
-    decay_y = label[4]
-    decay_z = label[5]
+    if label is not None:
+        label = label.cpu().numpy().tolist()
+        prod_x = label[0]
+        prod_y = label[1]
+        prod_z = label[2]
+        decay_x = label[3]
+        decay_y = label[4]
+        decay_z = label[5]
 
     # prediction
     prediction = prediction.cpu().numpy().tolist()
@@ -65,10 +65,11 @@ def plot_event(data, label, prediction, normalization_args = None):
     ax.scatter(x, y, z, s=s)
     
     # plot label and draw line between
-    ax.scatter(prod_x, prod_y, prod_z, color='red')
-    ax.scatter(decay_x, decay_y, decay_z, color='blue')
-    label_length = distance(prod_x, prod_y, prod_z, decay_x, decay_y, decay_z)
-    ax.plot([prod_x, decay_x], [prod_y, decay_y], [prod_z, decay_z], color='red', label='label: {:.2f} m'.format(label_length))
+    if label is not None:
+        ax.scatter(prod_x, prod_y, prod_z, color='red')
+        ax.scatter(decay_x, decay_y, decay_z, color='blue')
+        label_length = distance(prod_x, prod_y, prod_z, decay_x, decay_y, decay_z)
+        ax.plot([prod_x, decay_x], [prod_y, decay_y], [prod_z, decay_z], color='red', label='label: {:.2f} m'.format(label_length))
     
     # plot prediction and draw line between
     ax.scatter(pred_prod_x, pred_prod_y, pred_prod_z, color='red')
@@ -98,14 +99,11 @@ def plot_event(data, label, prediction, normalization_args = None):
     
     return
 
-
-
-def plot_2x2_fn(data_list, label_list, prediction_list, normalization_args = None):
-    if len(data_list) != len(label_list) or len(data_list) != len(prediction_list):
+def plot_2x2_fn(data_list, prediction_list, label_list = None, normalization_args = None):
+    if len(data_list) != len(prediction_list):
         raise ValueError("data, label and prediction must have the same length")
     if len(data_list) != 4:
         raise ValueError("data must have 4 events")
-    
     
     # Create a 3D plot
     fig = plt.figure(figsize=(14,14))  # Set the figure size to 10x8 inches
@@ -113,6 +111,8 @@ def plot_2x2_fn(data_list, label_list, prediction_list, normalization_args = Non
     plt.subplots_adjust(hspace=0., wspace=0., left=0., right=0.9, top=0.9, bottom=0.)
     # plt.tight_layout()
     # add subplots
+    if label_list is None:
+        label_list = [None]*4
     for i, (data, label, prediction) in enumerate(zip(data_list, label_list, prediction_list)):
         ax = fig.add_subplot(221+i, projection='3d')
         
@@ -131,13 +131,14 @@ def plot_2x2_fn(data_list, label_list, prediction_list, normalization_args = Non
         s = [scale*(10**charge-1) for charge in charges] # total charge from log(1+charge)
             
         # label
-        label = label.cpu().numpy().tolist()
-        prod_x = label[0]
-        prod_y = label[1]
-        prod_z = label[2]
-        decay_x = label[3]
-        decay_y = label[4]
-        decay_z = label[5]
+        if label is not None:
+            label = label.cpu().numpy().tolist()
+            prod_x = label[0]
+            prod_y = label[1]
+            prod_z = label[2]
+            decay_x = label[3]
+            decay_y = label[4]
+            decay_z = label[5]
 
         # prediction
         prediction = prediction.cpu().numpy().tolist()
@@ -152,10 +153,11 @@ def plot_2x2_fn(data_list, label_list, prediction_list, normalization_args = Non
         ax.scatter(x, y, z, s=s)
         
         # plot label and draw line between
-        ax.scatter(prod_x, prod_y, prod_z, color='red')
-        ax.scatter(decay_x, decay_y, decay_z, color='blue')
-        label_length = distance(prod_x, prod_y, prod_z, decay_x, decay_y, decay_z)
-        ax.plot([prod_x, decay_x], [prod_y, decay_y], [prod_z, decay_z], color='red', label='label: {:.2f} m'.format(label_length))
+        if label is not None:
+            ax.scatter(prod_x, prod_y, prod_z, color='red')
+            ax.scatter(decay_x, decay_y, decay_z, color='blue')
+            label_length = distance(prod_x, prod_y, prod_z, decay_x, decay_y, decay_z)
+            ax.plot([prod_x, decay_x], [prod_y, decay_y], [prod_z, decay_z], color='red', label='label: {:.2f} m'.format(label_length))
         
         # plot prediction and draw line between
         ax.scatter(pred_prod_x, pred_prod_y, pred_prod_z, color='red')
@@ -197,6 +199,7 @@ if __name__ == "__main__":
     parser.add_argument('--modelconfig', type=str, help='Path of the model config')
     parser.add_argument('--normpath', type=str, help='Path to the normalization arguments file')
     parser.add_argument('--plot2x2', action=argparse.BooleanOptionalAction, default=False, help='Plot 2x2 plots')
+    parser.add_argument('--unlabeled', action=argparse.BooleanOptionalAction, default=False, help='Unlabeled data?')
     
     # Parse the arguments
     args = parser.parse_args()
@@ -211,6 +214,7 @@ if __name__ == "__main__":
     config_path = args.modelconfig
     norm_path = args.normpath
     plot_2x2 = args.plot2x2
+    is_unlabeled = args.unlabeled
 
     # create model
     with open(config_path, 'r') as stream:
@@ -239,17 +243,29 @@ if __name__ == "__main__":
         normalization_args = yaml.safe_load(file)
     
     # create dataset
-    dataset = LLPDataset(
-        index_file_path,
-        file_paths,
-        feature_indices_file_path,
-        normalize_data=True,
-        normalize_target=False,
-        normalization_args=normalization_args,
-        device="cuda",
-        dtype=torch.float32,
-        shuffle_files=shuffle_files,
-    )
+    if is_unlabeled:
+        dataset = UnlabeledLLPDataset(
+            index_file_path,
+            file_paths,
+            feature_indices_file_path,
+            normalize_data=True,
+            normalization_args=normalization_args,
+            device="cuda",
+            dtype=torch.float32,
+            shuffle_files=shuffle_files,
+        )
+    else:
+        dataset = LLPDataset(
+            index_file_path,
+            file_paths,
+            feature_indices_file_path,
+            normalize_data=True,
+            normalize_target=False,
+            normalization_args=normalization_args,
+            device="cuda",
+            dtype=torch.float32,
+            shuffle_files=shuffle_files,
+        )
 
     # split dataset into train and test
     nfiles = len(file_paths)
@@ -273,8 +289,12 @@ if __name__ == "__main__":
 
     # dataloader
     batch_size = 4
-    trainloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, collate_fn=llp_collate_fn)
-    testloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=llp_collate_fn)
+    if is_unlabeled:
+        my_collate_fn = llp_collate_unlabeled_fn
+    else:
+        my_collate_fn = llp_collate_fn
+    trainloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, collate_fn=my_collate_fn)
+    testloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=my_collate_fn)
     # visualize train or test?
     if predict_train:
         dataloader = trainloader
@@ -293,7 +313,7 @@ if __name__ == "__main__":
                 data = datavecs[i]
                 label = labels[i]
                 prediction = predictions[i]
-                plot_event(data, label, prediction, normalization_args)
+                plot_event(data, prediction, label, normalization_args)
                 counter += 1
     
     # define a function to plot events as 2x2
@@ -305,7 +325,7 @@ if __name__ == "__main__":
             with torch.no_grad():
                 predictions = model(datavecs, datalens)
             assert len(datavecs) == 4
-            plot_2x2_fn(datavecs, labels, predictions, normalization_args)
+            plot_2x2_fn(datavecs, predictions, labels, normalization_args)
             counter += 1
                 
     if plot_2x2:
