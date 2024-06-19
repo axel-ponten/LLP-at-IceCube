@@ -9,6 +9,9 @@ dark-leptonic-scalar-simulation/condor/condor_exe_dirs/
 dark-leptonic-scalar-simulation/data/
 dark-leptonic-scalar-simulation/logs/
 
+reconstruction/transformer-encoder/examples/train_wout_cnf/trained-models
+
+
 # PYTHON DEFAULT GITIGNORE
 # Byte-compiled / optimized / DLL files
 __pycache__/
