@@ -57,8 +57,10 @@ if models_path[-1] != "/":
 if not os.path.exists(models_path):
     os.makedirs(models_path)
 else:
-    print("Warning: model directory already exists. Rename it to avoid overwriting models.")
-    exit()
+    # don't lose your precious models!
+    if len(os.listdir(models_path)) > 5:
+        print("Warning: model directory already exists. Rename it to avoid overwriting models.")
+        exit()
 
 # copy model config file to models directory
 os.system("cp " + config_path + " " + models_path)
@@ -98,6 +100,7 @@ print("Nfiles train/test", nfiles_train, nfiles_test)
 print("Train size:", train_size)
 print("Test size:", test_size)
 print("Percentage of train data:", train_size/len(dataset)*100.0, "%")
+print("Batch size:", batch_size)
 print("#####################")
 # Created using indices from 0 to train_size.
 # train_dataset = torch.utils.data.Subset(dataset, range(train_size))
