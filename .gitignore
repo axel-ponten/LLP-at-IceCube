@@ -10,6 +10,7 @@ dark-leptonic-scalar-simulation/data/
 dark-leptonic-scalar-simulation/logs/
 
 reconstruction/transformer-encoder/examples/train_wout_cnf/trained-models
+reconstruction/transformer-encoder/examples/train_cnf/trained-models
 
 
 # PYTHON DEFAULT GITIGNORE
