@@ -101,6 +101,7 @@ print("Train size:", train_size)
 print("Test size:", test_size)
 print("Percentage of train data:", train_size/len(dataset)*100.0, "%")
 print("Batch size:", batch_size)
+print("Learning rate:", learning_rate)
 print("#####################")
 # Created using indices from 0 to train_size.
 # train_dataset = torch.utils.data.Subset(dataset, range(train_size))
