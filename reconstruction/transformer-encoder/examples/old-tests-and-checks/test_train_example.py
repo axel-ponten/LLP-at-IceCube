@@ -54,7 +54,7 @@ def variance_from_covariance(cov_mx):
 
 ####### CREATE MODEL #######
 # model settings
-config_path = "../configs/test_settings.yaml"
+config_path = "../configs/test_settings_full_model.yaml"
 with open(config_path, 'r') as stream:
     config = yaml.safe_load(stream)
 kwargs_dict = config["settings"]
@@ -65,11 +65,12 @@ model = LLPTransformerModel(**kwargs_dict)
 pdf = jammy_flows.pdf("e6", "gggggt", conditional_input_dim=config["settings"]["output_dim"])
 
 # init for the gaussian flow
-# test_label = torch.Tensor([400,400,400, -400,-400,-400]).unsqueeze(0)  
-# pdf.init_params(data=test_label)
+test_label = torch.Tensor([400,400,400, -400,-400,-400]).unsqueeze(0)
+pdf.init_params(data=test_label)
 
 model.to('cuda')
 pdf.to('cuda')
+pdf.double()
 print("Transformer model:", model)
 print("Flow model:", pdf)
 total_params = sum([p.numel() for p in model.parameters() if p.requires_grad])
@@ -79,7 +80,7 @@ print("Trainable flow parameters:", pdf.count_parameters())
 
 ####### LOSS AND OPTIMIZER #######
 criterion = nn.MSELoss()
-learning_rate = 0.01
+learning_rate = 0.0001
 optimizer = torch.optim.Adam(list(model.parameters()) + list(pdf.parameters()), lr=learning_rate)
 
 ####### TRAIN #######
@@ -88,13 +89,13 @@ print("Starting training loop with {} epochs".format(n_epochs))
 loss_vals = []
 for epoch in range(n_epochs):
     for i, (batch_input, batch_lens, batch_label) in enumerate(dataloader):
-        print("Batch", i, "of epoch", epoch + 1, "of", n_epochs, "epochs")
-        print(batch_lens)
-        [print(vec.shape) for vec in batch_input]
+        # print("Batch", i, "of epoch", epoch + 1, "of", n_epochs, "epochs")
         # reset gradients
         optimizer.zero_grad()
         # propagate input
         nn_output = model(batch_input, batch_lens)
+        nn_output = nn_output.double() # make double
+        
         # # check range of output
         # for item in nn_output:
         #     print(torch.min(item), "-", torch.max(item))
@@ -119,7 +120,7 @@ for epoch in range(n_epochs):
         print("log_prob_target", log_prob_target)
     if epoch%1 == 0:
         print("Epoch", epoch + 1, "loss", neg_log_loss.item())
-    loss_vals.append(neg_log_loss.item())
+    loss_vals.append(neg_log_loss.item()) # @TODO: check detach instead?
 
 ####### SAVE MODEL #######
 model_path = "model.pth"
