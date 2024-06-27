@@ -115,6 +115,27 @@ def obtain_llp_data(frame, surface=None):
             gap_length, fractional_energy, llp_energy,
             decay_asymmetry)
 
+def obtain_MC_info(frame, surface=None):
+    """ Return MC muon info. Energy, zenith and length in detector.
+        If many muons, then compute sum of energies.
+    """
+    if "MMCTrackList" not in frame:
+        raise ValueError("MMCTrackList not in frame")
+    tracklist = frame["MMCTrackList"]
+    muon_energy = 0
+    # iterate through MMCTrackList
+    for track in tracklist:
+        muon_energy += track.Ei
+
+    # get muon zenith
+    muon_zenith = tracklist[0].particle.dir.zenith # overwrite, but it's the same
+
+    # get muon length
+    intersections = surface.intersection(tracklist[0].particle.pos, tracklist[0].particle.dir)
+    muon_length = intersections.second - intersections.first
+
+    return muon_energy, muon_zenith, muon_length
+
 def obtain_encoded_data(frame, 
                         pulse_series_name, 
                         geometry,

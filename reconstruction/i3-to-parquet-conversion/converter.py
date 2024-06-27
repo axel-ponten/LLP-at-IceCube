@@ -57,6 +57,9 @@ class Converter(object):
         self.total_index_info["rowgroup_index_within_file"]=[]
         self.total_index_info["event_id"]=[]
         self.total_index_info["run_id"]=[]
+        self.total_index_info["muon_energy"]=[]
+        self.total_index_info["muon_zenith"]=[]
+        self.total_index_info["muon_length"]=[]
 
         # MC weighting info
         self.total_weight_info=dict()
@@ -64,6 +67,9 @@ class Converter(object):
 
         # extract geometry and DOM efficienies (rde = relative dom efficieency)
         self.i3_geo, self.geo, self.rde_dict = i3_methods.extract_geometry_n_rdes(gcdfile)
+        
+        # add geometry surface
+        self.surface = i3_methods.MakeSurface(gcdfile, 0.)
         #####################################################
 
         print("####################################")
@@ -230,8 +236,7 @@ class Converter(object):
         
         if(self.is_frame_mc(frame)):
             # add extra MC info
-            # @TODO: implement
-            pass
+            self.add_MC_info(frame)
         if(self.is_llp):
             self.add_llp_info_to_buffer(frame)
             
@@ -254,7 +259,14 @@ class Converter(object):
         self.buffer["llp_fractional_energy"].append(fractional_energy)
         self.buffer["llp_energy"].append(llp_energy)
         self.buffer["llp_decay_asymmetry"].append(decay_asymmetry) 
-        
+    
+    def add_MC_info(self, frame):
+        """ Add muon spectrum info to buffer. """
+        mcinfo = i3_methods.obtain_MC_info(frame, self.surface)
+        self.total_index_info["muon_energy"].append(mcinfo[0])
+        self.total_index_info["muon_zenith"].append(mcinfo[1])
+        self.total_index_info["muon_length"].append(mcinfo[2])
+    
     def write_aux_files(self, total_num_written, total_num_events_overall, total_num_files_written):
         """ Write files used for re-weighting.
 
@@ -406,11 +418,8 @@ class Converter(object):
             if(self.is_first_frame_mc):
                 for k in self.total_weight_info["I3MCWeightDict"].keys():
                     self.total_weight_info["I3MCWeightDict"][k]=numpy.array(self.total_weight_info["I3MCWeightDict"][k][:-self.num_appended])
-            self.total_index_info["index_within_file"]=self.total_index_info["index_within_file"][:-self.num_appended]
-            self.total_index_info["rowgroup_index_within_file"]=self.total_index_info["rowgroup_index_within_file"][:-self.num_appended]
-            self.total_index_info["file_index"]=self.total_index_info["file_index"][:-self.num_appended]
-            self.total_index_info["run_id"]=self.total_index_info["run_id"][:-self.num_appended]
-            self.total_index_info["event_id"]=self.total_index_info["event_id"][:-self.num_appended]
+            for key, value in self.total_index_info.items():
+                self.total_index_info[key]=self.total_index_info[key][:-self.num_appended]
 
     def check_good_frame(self, frame):
         # @TODO: implement
