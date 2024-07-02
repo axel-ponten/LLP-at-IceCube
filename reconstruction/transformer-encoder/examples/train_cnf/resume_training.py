@@ -1,5 +1,4 @@
-""" Standard pytorch training loop.
-No conditional normalizing flow, only transformer encoder.
+""" Standard pytorch training loop. Resume training from a previous state.
 """
 
 import numpy as np
@@ -18,6 +17,7 @@ import jammy_flows
 
 from llp_gap_reco.encoder import LLPTransformerModel
 from llp_gap_reco.dataset import LLPDataset, LLPSubset, llp_collate_fn
+import llp_gap_reco.training.utils as training_utils
 
 
 ## helper funcs
@@ -76,82 +76,25 @@ else:
         print("Warning: model directory exists but less than 5 files in it.")
         exit()
 
-# filepaths
-index_file_path = top_folder + "indexfile.pq"
-feature_indices_file_path = top_folder + "feature_indices.yaml"
-file_paths = glob.glob(top_folder + filename_start + "*.pq")
-
-# normalizaton args
-with open(norm_path, "r") as file:
-    normalization_args = yaml.safe_load(file)
-
-dataset = LLPDataset(
-    index_file_path,
-    file_paths,
-    feature_indices_file_path,
-    normalize_data=True,
-    normalize_target=False,
-    normalization_args=normalization_args,
-    device="cuda",
-    dtype=torch.float32,
-    shuffle_files=True,
-    
-)
-# split dataset into train and test
-nfiles = len(file_paths)
-nfiles_train = int(0.8*nfiles)
-nfiles_test = nfiles - nfiles_train
-events_per_file = len(dataset)//nfiles
-train_size = int(nfiles_train*events_per_file)
-test_size = len(dataset) - train_size
-print("#####################")
-print("Dataset info:")
-print("Events per .pq file", events_per_file)
-print("Nfiles train/test", nfiles_train, nfiles_test)
-print("Train size:", train_size)
-print("Test size:", test_size)
-print("Percentage of train data:", train_size/len(dataset)*100.0, "%")
-print("Batch size:", batch_size)
-print("Learning rate:", learning_rate)
-print("#####################")
-
-# Created using indices from 0 to train_size.
-train_dataset = LLPSubset(dataset, range(train_size))
-# Created using indices from train_size to train_size + test_size.
-test_dataset = LLPSubset(dataset, range(train_size, train_size + test_size))
-
+###### CREATE DATASET & DATALOADER ######
+train_dataset, test_dataset = training_utils.create_split_datasets(top_folder,
+                          filename_start,
+                          norm_path,
+                          split=0.8,
+                          shuffle=True
+                          )
+train_size = len(train_dataset)
+test_size = len(test_dataset)
 # dataloader
 trainloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, collate_fn=llp_collate_fn)
 testloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=llp_collate_fn)
 
 ####### CREATE MODEL #######
-# model settings
-with open(config_path, 'r') as stream:
-    config = yaml.safe_load(stream)
-kwargs_dict = config["settings"]
-
 # create transformer encoder and cond. normalizing flow
-model = LLPTransformerModel(**kwargs_dict)
+model, pdf = training_utils.create_full_model(config_path, device="cuda")
+
+# load previous state
 model.load_state_dict(torch.load(last_state_transformer))
-model.to('cuda')
-
-
-opt_dict=dict()
-opt_dict["t"]=dict()
-opt_dict["t"]["cov_type"]="full"
-opt_dict["g"]=dict()
-opt_dict["g"]["fit_normalization"]=0
-opt_dict["g"]["upper_bound_for_widths"]=1.0
-opt_dict["g"]["lower_bound_for_widths"]=0.01
-
-# pdf = jammy_flows.pdf("e6", "gggggt",
-#                       conditional_input_dim=config["settings"]["output_dim"],
-#                       options_overwrite=opt_dict,
-#                       )
-pdf = jammy_flows.pdf("e6", "t",
-                      conditional_input_dim=config["settings"]["output_dim"],
-                      options_overwrite=opt_dict,
-                      )
 pdf.load_state_dict(torch.load(last_state_flow))
 
 model.to('cuda')

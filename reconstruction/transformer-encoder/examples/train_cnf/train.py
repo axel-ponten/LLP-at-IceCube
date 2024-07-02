@@ -9,6 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.nn as nn
 import yaml
 import glob
@@ -20,12 +21,13 @@ import jammy_flows
 
 from llp_gap_reco.encoder import LLPTransformerModel
 from llp_gap_reco.dataset import LLPDataset, LLPSubset, llp_collate_fn
+import llp_gap_reco.training.utils as training_utils
 
 ## helper funcs
 def variance_from_covariance(cov_mx):
     return np.sqrt(np.diag(cov_mx))
 
-###### GET DATASET #######
+###### ARGPARSE ######
 parser = argparse.ArgumentParser(description='Training arguments')
 
 # Add arguments
@@ -71,74 +73,26 @@ else:
 # copy model config file to models directory
 os.system("cp " + config_path + " " + models_path)
 
-# filepaths
-index_file_path = top_folder + "indexfile.pq"
-feature_indices_file_path = top_folder + "feature_indices.yaml"
-file_paths = glob.glob(top_folder + filename_start + "*.pq")
-
-# normalizaton args
-with open(norm_path, "r") as file:
-    normalization_args = yaml.safe_load(file)
-
-# create dataset
-dataset = LLPDataset(
-    index_file_path,
-    file_paths,
-    feature_indices_file_path,
-    normalize_data=True,
-    normalize_target=False,
-    normalization_args=normalization_args,
-    device="cuda",
-    dtype=torch.float32,
-    shuffle_files=True,
-)
-
-# split dataset into train and test
-nfiles = len(file_paths)
-nfiles_train = int(0.8*nfiles)
-nfiles_test = nfiles - nfiles_train
-events_per_file = len(dataset)//nfiles
-train_size = int(nfiles_train*events_per_file)
-test_size = len(dataset) - train_size
-print("#####################")
-print("Dataset info:")
-print("Events per .pq file", events_per_file)
-print("Nfiles train/test", nfiles_train, nfiles_test)
-print("Train size:", train_size)
-print("Test size:", test_size)
-print("Percentage of train data:", train_size/len(dataset)*100.0, "%")
-print("Batch size:", batch_size)
-print("Learning rate:", learning_rate)
-print("#####################")
-
-# Created using indices from 0 to train_size.
-train_dataset = LLPSubset(dataset, range(train_size))
-# Created using indices from train_size to train_size + test_size.
-test_dataset = LLPSubset(dataset, range(train_size, train_size + test_size))
-
+###### CREATE DATASET & DATALOADER ######
+train_dataset, test_dataset = training_utils.create_split_datasets(top_folder,
+                          filename_start,
+                          norm_path,
+                          split=0.8,
+                          shuffle=True
+                          )
+train_size = len(train_dataset)
+test_size = len(test_dataset)
 # dataloader
 trainloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, collate_fn=llp_collate_fn)
 testloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=llp_collate_fn)
 
 ####### CREATE MODEL #######
-# model settings
-with open(config_path, 'r') as stream:
-    config = yaml.safe_load(stream)
-kwargs_dict = config["settings"]
-
 # create transformer encoder and cond. normalizing flow
-model = LLPTransformerModel(**kwargs_dict)
-pdf = jammy_flows.pdf("e6", "gggggt", conditional_input_dim=config["settings"]["output_dim"])
+model, pdf = training_utils.create_full_model(config_path, device="cuda")
+# init for the gaussianization flow
+training_utils.init_pdf_target_space(pdf, train_dataset, n_init=200, device="cuda")
 
-# init for the gaussian flow
-n_init = 200
-initialization_labels = torch.stack([train_dataset[i][1] for i in range(n_init)], dim=0).to('cpu')
-print("Initialization labels", initialization_labels)
-pdf.init_params(data=initialization_labels)
-
-model.to('cuda')
-pdf.to('cuda')
-pdf.double()
+# print information
 print("Transformer model:", model)
 print("Flow model:", pdf)
 total_params = sum([p.numel() for p in model.parameters() if p.requires_grad])
@@ -149,6 +103,7 @@ print("Trainable flow parameters:", pdf.count_parameters())
 ####### LOSS AND OPTIMIZER #######
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(list(model.parameters()) + list(pdf.parameters()), lr=learning_rate)
+scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=10, min_lr=1e-8)
 
 ####### TRAIN #######
 print("Starting training loop with {} epochs".format(n_epochs))
@@ -159,34 +114,19 @@ for epoch in range(n_epochs):
     # shuffle data every epoch
     trainloader.dataset.shuffle()
     model.train()
-    # pdf.train()
     train_loss = 0
     start_time = time.time()  # Start the timer for the epoch
     for i, (batch_input, batch_lens, batch_label) in enumerate(trainloader):
-        # if (i+1)%10 == 0:
-        #     break
         if i%1000 == 0:
             print("Batch", str(i) + "/" + str(train_size//batch_size), " of epoch", epoch + 1, "of", n_epochs, "epochs")
-
         # reset gradients
         optimizer.zero_grad()
         # propagate input
         nn_output = model(batch_input, batch_lens)
         nn_output = nn_output.double() # make double
-        
-        # # check range of output
-        # for item in nn_output:
-        #     print(torch.min(item), "-", torch.max(item))
-        
-        #batch_label = batch_label.to('cpu')
-        #print(batch_label.device)
-        # try:
-        log_prob_target, log_prob_base, position_base=pdf(batch_label, conditional_input=nn_output)
-        # except:
-        #     print("Error in forward pass probably log_prob_target in previous batch had NaN.")
-        #     print(nn_output.shape)
-        #     print(nn_output)
         # compute loss
+        batch_label = batch_label.double()
+        log_prob_target, log_prob_base, position_base=pdf(batch_label, conditional_input=nn_output)
         neg_log_loss = -log_prob_target.mean()
         # compute gradient
         neg_log_loss.backward()
@@ -194,17 +134,15 @@ for epoch in range(n_epochs):
         optimizer.step()
         # add loss
         train_loss += neg_log_loss.item()
-        #print("log_prob_target", log_prob_target)
-        
-    ###
+
+    ################# end of epoch #################
     # train loss for the epoch
     train_loss = train_loss*batch_size/train_size  # Calculate the average train loss
-    train_loss_vals.append(train_loss)
+
     
     # test loss for the epoch
     test_loss = 0.0
     model.eval()  # Set the model to evaluation mode
-    # pdf.eval()
     with torch.no_grad():
         for batch_input, batch_lens, batch_label in testloader:
             nn_output = model(batch_input, batch_lens)
@@ -212,10 +150,13 @@ for epoch in range(n_epochs):
             log_prob_target, log_prob_base, position_base=pdf(batch_label, conditional_input=nn_output)
             neg_log_loss = -log_prob_target.mean()
             test_loss += neg_log_loss.item()
-    
     test_loss = test_loss*batch_size/test_size  # Calculate the average test loss
-    test_loss_vals.append(test_loss)
     
+    # update learning rate?
+    scheduler.step(test_loss)
+    print("Learning rate:", optimizer.param_groups[0]['lr'])
+    
+    ##### aux stuff #####
     # print example outputs
     print("Last three test labels:", batch_label[0:3])
     y_pred = pdf.marginal_moments(nn_output[0:3],samplesize=300)
@@ -224,15 +165,31 @@ for epoch in range(n_epochs):
     print("Last three test outputs (mean and std):")
     print(ymean)
     print(ystd)
-
+    
+    # timer
     end_time = time.time()  # Stop the timer for the epoch
     epoch_time = end_time - start_time  # Calculate the time taken for the epoch
     print("Epoch", epoch + 1, "in", epoch_time, "s. Train loss", train_loss, ": Test loss", test_loss)
     print("#####################################")
 
     # save losses to csv
+    train_loss_vals.append(train_loss)
+    test_loss_vals.append(test_loss)
     df = pd.DataFrame({"train_loss": train_loss_vals, "test_loss": test_loss_vals})
     df.to_csv(models_path + "loss.csv")
+    
+    ####### PLOT LOSS #######
+    if do_plots:
+        plt.figure()
+        plt.plot(train_loss_vals, label="train")
+        plt.plot(test_loss_vals, label="test")
+        plt.legend()
+        plt.title("loss: batch size {} lr {}".format(batch_size, learning_rate))
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.yscale("log")
+        plt.savefig(models_path + "loss.png")
+        plt.close()
 
     # save model every 5 epochs
     if epoch % 5 == 0:
@@ -258,7 +215,7 @@ if do_plots:
     plt.plot(train_loss_vals, label="train")
     plt.plot(test_loss_vals, label="test")
     plt.legend()
-    plt.title("loss")
+    plt.title("loss: batch size {} lr {}".format(batch_size, learning_rate))
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.yscale("log")
