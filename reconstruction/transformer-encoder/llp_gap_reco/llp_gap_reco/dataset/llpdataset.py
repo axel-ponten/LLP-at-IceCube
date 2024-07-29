@@ -77,6 +77,9 @@ class LLPDataset(Dataset):
         index_row = self.total_index_info.iloc[idx]
         file_index = index_row["file_index"]
         index_within_file = index_row["index_within_file"]
+        # convert to int for indexing
+        file_index = int(file_index)
+        index_within_file = int(index_within_file)
         
         # is data already loaded? if not, load new file into memory
         if self.current_load_file_index != file_index:
