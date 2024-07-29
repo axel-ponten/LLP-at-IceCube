@@ -97,11 +97,10 @@ print("Transformer model:", model)
 print("Flow model:", pdf)
 total_params = sum([p.numel() for p in model.parameters() if p.requires_grad])
 print("Trainable transformer encoder parameters:", total_params)
-print("Trainable flow parameters:", pdf.count_parameters())
+print("Flow parameters:", pdf.count_parameters())
 ############################
 
 ####### LOSS AND OPTIMIZER #######
-criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(list(model.parameters()) + list(pdf.parameters()), lr=learning_rate)
 scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=10, min_lr=1e-8)
 
@@ -119,6 +118,7 @@ for epoch in range(n_epochs):
     for i, (batch_input, batch_lens, batch_label) in enumerate(trainloader):
         if i%1000 == 0:
             print("Batch", str(i) + "/" + str(train_size//batch_size), " of epoch", epoch + 1, "of", n_epochs, "epochs")
+
         # reset gradients
         optimizer.zero_grad()
         # propagate input
@@ -130,6 +130,45 @@ for epoch in range(n_epochs):
         neg_log_loss = -log_prob_target.mean()
         # compute gradient
         neg_log_loss.backward()
+        
+        # check gradients for NaN
+        grads = []
+        # transformer
+        for param in model.parameters():
+            if param.grad == None:
+                continue
+            grads.append(param.grad.view(-1))
+        # flow
+        for param in pdf.parameters():
+            if param.grad == None:
+                continue
+            grads.append(param.grad.view(-1))
+        grads = torch.cat(grads)
+        if torch.isnan(grads).any():
+
+            torch.set_printoptions(threshold=10_000)
+            print('########################')
+            print('nan occured here')
+            print('########################')
+            
+            # model
+            for name, param in model.named_parameters():
+                if torch.isnan(param).any():
+                    print(name)
+                    print(param)
+                if torch.isnan(param.grad).any():
+                    print(name)
+                    print(param.grad)
+            # flow
+            for name, param in pdf.named_parameters():
+                if torch.isnan(param).any():
+                    print(name)
+                    print(param)
+                if torch.isnan(param.grad).any():
+                    print(name)
+                    print(param.grad)
+        # if any nan, skip batch
+        assert(not torch.isnan(grads).any())
         # update weights
         optimizer.step()
         # add loss

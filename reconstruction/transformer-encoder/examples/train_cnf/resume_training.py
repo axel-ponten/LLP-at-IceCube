@@ -125,23 +125,58 @@ for epoch in range(last_epoch, last_epoch + n_epochs):
     start_time = time.time()  # Start the timer for the epoch
     for i, (batch_input, batch_lens, batch_label) in enumerate(trainloader):
         if i%1000 == 0:
-            print("Batch", str(i) + "/" + str(train_size//batch_size), " of epoch", epoch + 1, "of", n_epochs, "epochs")
-        # reset gradients
-        optimizer.zero_grad()
-        # propagate input
-        nn_output = model(batch_input, batch_lens)
-        nn_output = nn_output.double() # make double
-        
-        # compute loss
-        batch_label = batch_label.double()
-        log_prob_target, log_prob_base, position_base=pdf(batch_label, conditional_input=nn_output)
-        neg_log_loss = -log_prob_target.mean()
-        # compute gradient
-        neg_log_loss.backward()
-        # update weights
-        optimizer.step()
-        # add loss
-        train_loss += neg_log_loss.item()
+            print("Batch", str(i) + "/" + str(train_size//batch_size), " of epoch", epoch + 1, "of", n_epochs+last_epoch, "epochs")
+        try:
+            # reset gradients
+            optimizer.zero_grad()
+            # propagate input
+            nn_output = model(batch_input, batch_lens)
+            nn_output = nn_output.double() # make double
+            # compute loss
+            batch_label = batch_label.double()
+            log_prob_target, log_prob_base, position_base=pdf(batch_label, conditional_input=nn_output)
+            neg_log_loss = -log_prob_target.mean()
+            # compute gradient
+            neg_log_loss.backward()
+            
+            # check gradients for NaN
+            grads = []
+            # transformer
+            for param in model.parameters():
+                if param.grad == None:
+                    continue
+                grads.append(param.grad.view(-1))
+            # flow
+            for param in pdf.parameters():
+                if param.grad == None:
+                    continue
+                grads.append(param.grad.view(-1))
+            grads = torch.cat(grads)
+            if torch.isnan(grads).any():
+
+                torch.set_printoptions(threshold=10_000)
+                print('########################')
+                print('nan occured here')
+                print('########################')
+                
+                # model
+                for name, param in model.named_parameters():
+                    if torch.isnan(param).any():
+                        print(name)
+                        print(param)
+                # flow
+                for name, param in pdf.named_parameters():
+                    if torch.isnan(param).any():
+                        print(name)
+                        print(param)
+            # if any nan, skip batch
+            assert(not torch.isnan(grads).any())
+            # update weights
+            optimizer.step()
+            # add loss
+            train_loss += neg_log_loss.item()
+        except:
+            print("Error in batch", i)
         
     ################# end of epoch #################
     # train loss for the epoch
@@ -201,7 +236,9 @@ for epoch in range(last_epoch, last_epoch + n_epochs):
     # save model every 5 epochs
     if epoch % 5 == 0:
         model_path = models_path + "model_epoch_{}.pth".format(epoch)
-        torch.save(model.state_dict(), model_path)
+        flow_path  = models_path + "flow_epoch_{}.pth".format(epoch)
+    torch.save(model.state_dict(), model_path)
+    torch.save(pdf.state_dict(), flow_path)
 
 ####### SAVE FINAL MODEL #######
 model_path = models_path + "model_resumed_final.pth"
