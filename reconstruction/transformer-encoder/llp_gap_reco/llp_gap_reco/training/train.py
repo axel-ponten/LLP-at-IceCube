@@ -34,7 +34,8 @@ class Trainer():
               folder,
               start_epoch=0,
               verbose=True,
-              save_freq=5,):
+              save_freq=5,
+              grad_clip = None,):
         """ Main training loop """
         # set members
         self.train_loader = train_loader
@@ -47,6 +48,15 @@ class Trainer():
         self.folder = folder
         if self.folder[-1] != "/":
             self.folder += "/"
+        self.grad_clip = grad_clip # gradient clipping
+        
+        # register backwards hook (for gradient clipping)
+        for p in self.model.parameters():
+            p.register_hook(lambda grad: torch.clamp(grad, -self.grad_clip, self.grad_clip))
+        if self.is_flow:
+            for p in self.pdf.parameters():
+                p.register_hook(lambda grad: torch.clamp(grad, -self.grad_clip, self.grad_clip))
+        
         
         # prep some variables
         self.train_size = len(train_loader.dataset)
@@ -95,11 +105,21 @@ class Trainer():
         loss = self._compute_loss(batch_input, batch_lens, batch_label)
         # compute gradient
         loss.backward()
+        # clip gradients
+        # if self.grad_clip is not None:
+        #     nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
+        #     if self.is_flow:
+        #         nn.utils.clip_grad_norm_(self.pdf.parameters(), self.grad_clip)
+        
+        # check gradients
+        # @TODO: remove when unecessary
+        self._check_gradients()
+        
         # update train loss
         self.train_loss += loss.item()
         # update weights
         self.optimizer.step()
-    
+
     def _compute_loss(self, batch_input, batch_lens, batch_label):
         """ Forward pass and compute loss.
             Use the correct method depending on the model.
@@ -200,6 +220,46 @@ class Trainer():
     ## helper funcs
     def _variance_from_covariance(self, cov_mx):
         return np.sqrt(np.diag(cov_mx))
+    
+    def _check_gradients(self):
+        # check gradients for NaN
+        grads = []
+        # transformer
+        for param in self.model.parameters():
+            if param.grad == None:
+                continue
+            grads.append(param.grad.view(-1))
+        # flow
+        for param in self.pdf.parameters():
+            if param.grad == None:
+                continue
+            grads.append(param.grad.view(-1))
+        grads = torch.cat(grads)
+        if torch.isnan(grads).any():
+
+            torch.set_printoptions(threshold=10_000)
+            print('########################')
+            print('nan occured here')
+            print('########################')
+            
+            # model
+            for name, param in self.model.named_parameters():
+                if torch.isnan(param).any():
+                    print(name)
+                    print(param)
+                if torch.isnan(param.grad).any():
+                    print(name)
+                    print(param.grad)
+            # flow
+            for name, param in self.pdf.named_parameters():
+                if torch.isnan(param).any():
+                    print(name)
+                    print(param)
+                if torch.isnan(param.grad).any():
+                    print(name)
+                    print(param.grad)
+        # if any nan, skip batch
+        assert(not torch.isnan(grads).any())
     
     def _finish(self):
         # save final models and losses
