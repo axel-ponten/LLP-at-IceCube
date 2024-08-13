@@ -57,6 +57,8 @@ class Trainer():
             for p in self.pdf.parameters():
                 p.register_hook(lambda grad: torch.clamp(grad, -self.grad_clip, self.grad_clip))
         
+        # early stopping
+        self.early_stopper = EarlyStopper(patience=15, percent_tolerance=0.0)
         
         # prep some variables
         self.train_size = len(train_loader.dataset)
@@ -78,6 +80,7 @@ class Trainer():
         ###### TRAIN ######
         print("Starting training loop with {} epochs".format(n_epochs))
         print("#####################################")
+        self.continue_training = True
         for epoch in range(start_epoch, self.final_epoch):
             self.epoch = epoch
             # shuffle data every epoch
@@ -94,6 +97,9 @@ class Trainer():
             ####################
             ### end of epoch ###
             self._end_of_epoch()
+            if not self.continue_training:
+                print("Training stopped at epoch", self.epoch)
+                break
         #### end of training ####
         self._finish()
     
@@ -111,14 +117,17 @@ class Trainer():
         #     if self.is_flow:
         #         nn.utils.clip_grad_norm_(self.pdf.parameters(), self.grad_clip)
         
-        # check gradients
+        # check gradients, only update if no NaN
         # @TODO: remove when unecessary
-        self._check_gradients()
-        
-        # update train loss
-        self.train_loss += loss.item()
-        # update weights
-        self.optimizer.step()
+        try:
+            self._check_gradients()
+            # update train loss
+            self.train_loss += loss.item()
+            # update weights
+            self.optimizer.step()
+        except:
+            print("Skipping batch due to NaN gradients")
+            pass
 
     def _compute_loss(self, batch_input, batch_lens, batch_label):
         """ Forward pass and compute loss.
@@ -178,7 +187,7 @@ class Trainer():
                 print(ystd)
             else:
                 print("Last three predictions no cnf:")
-                print(nn_output)
+                print(nn_output[0:3])
         
         end_time = time.time()  # Stop the timer for the epoch
         epoch_time = end_time - self.start_time  # Calculate the time taken for the epoch
@@ -194,6 +203,17 @@ class Trainer():
         # save model every 5 epochs
         if self.epoch % self.save_freq == 0:
             self._save_model()
+
+        # save lowest loss model as model_best.pth
+        if test_loss == min(self.test_loss_vals):
+            torch.save(self.model.state_dict(), self.folder + "model_best.pth")
+            if self.is_flow:
+                torch.save(self.pdf.state_dict(), self.folder + "flow_best.pth")
+                
+        # early stopping
+        if self.early_stopper.early_stop(test_loss):
+            print("Early stopping at epoch", self.epoch)
+            self._finish()
 
     def _save_model(self):
         model_path = self.folder + "model_epoch_{}.pth".format(self.epoch)
@@ -212,6 +232,7 @@ class Trainer():
         plt.ylabel("Loss")
         plt.yscale("log")
         plt.savefig(self.folder + "loss.png")
+        plt.close()
     
     def _save_losses(self):
         df = pd.DataFrame({"train_loss": self.train_loss_vals, "test_loss": self.test_loss_vals})
@@ -230,10 +251,11 @@ class Trainer():
                 continue
             grads.append(param.grad.view(-1))
         # flow
-        for param in self.pdf.parameters():
-            if param.grad == None:
-                continue
-            grads.append(param.grad.view(-1))
+        if self.is_flow:
+            for param in self.pdf.parameters():
+                if param.grad == None:
+                    continue
+                grads.append(param.grad.view(-1))
         grads = torch.cat(grads)
         if torch.isnan(grads).any():
 
@@ -251,15 +273,16 @@ class Trainer():
                     print(name)
                     print(param.grad)
             # flow
-            for name, param in self.pdf.named_parameters():
-                if torch.isnan(param).any():
-                    print(name)
-                    print(param)
-                if torch.isnan(param.grad).any():
-                    print(name)
-                    print(param.grad)
+            if self.is_flow:
+                for name, param in self.pdf.named_parameters():
+                    if torch.isnan(param).any():
+                        print(name)
+                        print(param)
+                    if torch.isnan(param.grad).any():
+                        print(name)
+                        print(param.grad)
         # if any nan, skip batch
-        assert(not torch.isnan(grads).any())
+        assert not torch.isnan(grads).any(), "NaN gradients"
     
     def _finish(self):
         # save final models and losses
@@ -268,3 +291,56 @@ class Trainer():
         if self.is_flow:
             flow_path  = self.folder + "flow_final.pth"
             torch.save(self.pdf.state_dict(), flow_path)
+        self.continue_training = False
+
+class EarlyStopper:
+    """
+    Class for implementing early stopping during training.
+
+    Attributes:
+        patience (int): The number of epochs to wait before stopping if the validation loss does not improve.
+        percent_tolerance (float): The percentage tolerance of the running average loss for determining if the validation loss has improved.
+
+    Methods:
+        early_stop(validation_loss): Checks if the validation loss has stopped improving and returns True if early stopping criteria is met, False otherwise.
+    """
+
+    def __init__(self, patience=15, percent_tolerance=0.0):
+        self.patience = patience
+        self.percent_tolerance = percent_tolerance # of running avg loss
+
+        self.counter = 0
+        self.min_validation_loss = float('inf')
+        # for running average of validation loss
+        self.running_average = []
+        self.average_length = 10
+
+    def early_stop(self, validation_loss):
+        """
+        Checks if the validation loss has stopped improving and returns True if early stopping criteria is met, False otherwise.
+
+        Args:
+            validation_loss (float): The current validation loss.
+
+        Returns:
+            bool: True if early stopping criteria is met, False otherwise.
+        """
+        if self.percent_tolerance > 0.0:
+            # running average of the last few validation losses
+            if len(self.running_average) >= self.average_length:
+                self.running_average.pop(0)
+            self.running_average.append(validation_loss)
+            tolerance = self.percent_tolerance * np.mean(self.running_average)
+        else:
+            tolerance = 0.0
+        
+        # new minimum?
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+        # counter increment?
+        elif validation_loss > (self.min_validation_loss + tolerance):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False
