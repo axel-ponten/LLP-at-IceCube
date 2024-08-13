@@ -46,9 +46,6 @@ class Converter(object):
         self.num_rowgroups=self.num_events_per_file/self.num_per_row_group
         self.is_llp = is_llp
         
-        # create gcd surface
-        #padding = 0.
-        #self._surface = axel_i3_methods.MakeSurface(gcdfile, padding)
         
         # index dictionary to hold meta info about .pq files
         self.total_index_info=dict()

@@ -36,6 +36,10 @@ if __name__ == "__main__":
     
     params = vars(parser.parse_args())  # dict()
 
+    # add trailing slash to target folder if not present
+    if params["target-folder"][-1] != "/":
+        params["target-folder"] += "/"
+
     # create target folder if it does not exist        
     try:
         os.makedirs(params["target-folder"])
@@ -43,6 +47,14 @@ if __name__ == "__main__":
     except FileExistsError:
         pass
     
+    # save info about the conversion to yaml file
+    with open(params["target-folder"] + "conversion_info.yaml", "w") as f:
+        import yaml
+        import feature_configs
+        encoding = feature_configs.feature_configs[params["encoding"]]
+        params["encoding-string"] = encoding
+        yaml.dump(params, f)
+
     # split input files. If only one file, split will return a list with one element
     filenames = params["input-file"].split(",")
 
