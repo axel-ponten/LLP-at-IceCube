@@ -21,11 +21,6 @@ parser.add_argument('--modelspath', type=str, help='Path to the models directory
 parser.add_argument('--configpath', type=str, help='Path to the config file')
 parser.add_argument('--filenamestart', type=str, default="base", help='For glob. How does filename start?')
 parser.add_argument('--gradclip', type=float, default=2000., help='Gradient clipping value')
-parser.add_argument('--laststatetransformer', type=str, help='Path to the last state of the transformer')
-parser.add_argument('--laststateflow', type=str, help='Path to the last state of the flow')
-parser.add_argument('--lastepoch', type=int, default=0, help='Last epoch')
-
-
 
 # Parse arguments
 args = parser.parse_args()
@@ -40,9 +35,6 @@ models_path = args.modelspath
 config_path = args.configpath
 filename_start = args.filenamestart
 grad_clip_val = args.gradclip
-last_state_transformer = args.laststatetransformer
-last_state_flow = args.laststateflow
-last_epoch = args.lastepoch
 
 # add trailing slash to top folder and models path
 if top_folder[-1] != "/":
@@ -52,13 +44,15 @@ if models_path[-1] != "/":
 
 # create model dir if it does not exist
 if not os.path.exists(models_path):
-    print("Model directory doesnt exist!")
-    exit()
+    os.makedirs(models_path)
 else:
     # don't lose your precious models!
-    if len(os.listdir(models_path)) < 5:
-        print("Warning: model directory exists but less than 5 files in it.")
+    if len(os.listdir(models_path)) > 5:
+        print("Warning: model directory already exists. Rename it to avoid overwriting models.")
         exit()
+
+# copy model config file to models directory
+os.system("cp " + config_path + " " + models_path)
 
 ###### CREATE DATASET & DATALOADER ######
 train_dataset, test_dataset = training_utils.create_split_datasets(top_folder,
@@ -75,29 +69,20 @@ testloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
 
 ####### CREATE MODEL #######
 # create transformer encoder and cond. normalizing flow
-model, pdf = training_utils.create_full_model(config_path, device="cuda")
+model = training_utils.create_transformer(config_path, device="cuda")
 
-# load previous state
-model.load_state_dict(torch.load(last_state_transformer))
-pdf.load_state_dict(torch.load(last_state_flow))
-
-model.to('cuda')
-pdf.to('cuda')
-pdf.double()
+# print information
 print("Transformer model:", model)
-print("Flow model:", pdf)
 total_params = sum([p.numel() for p in model.parameters() if p.requires_grad])
 print("Trainable transformer encoder parameters:", total_params)
-print("Trainable flow parameters:", pdf.count_parameters())
-############################
+###
 
 ########## TRAIN ##########
 # create trainer
-trainer = Trainer(model, pdf, device="cuda")
+trainer = Trainer(model, device="cuda")
 # optimizer and scheduler
-optimizer = torch.optim.Adam(list(model.parameters()) + list(pdf.parameters()), lr=learning_rate)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=10, min_lr=1e-10)
 # train
-print("Grad clip value:", grad_clip_val)
 trainer.train(trainloader, testloader, n_epochs, optimizer, scheduler, models_path,
-              start_epoch=last_epoch, verbose=True, save_freq=5, grad_clip=grad_clip_val)
+              start_epoch=0, verbose=True, save_freq=5, grad_clip=grad_clip_val)

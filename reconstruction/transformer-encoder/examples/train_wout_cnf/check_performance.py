@@ -12,6 +12,8 @@ import matplotlib.colors as mcolors
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import argparse
+import numpy as np
+import corner
 
 def distance(x1, y1, z1, x2, y2, z2):
     return np.sqrt((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)
@@ -179,31 +181,62 @@ if __name__ == "__main__":
                 true_decay_z = l[5].item()
                 # calculate differences
                 performance_dict["angular_diff"].append(angular_difference_from_points(pred_prod_x, pred_prod_y, pred_prod_z, pred_decay_x, pred_decay_y, pred_decay_z, true_prod_x, true_prod_y, true_prod_z, true_decay_x, true_decay_y, true_decay_z))
-                performance_dict["gap_diff"].append(abs(distance(pred_prod_x, pred_prod_y, pred_prod_z, pred_decay_x, pred_decay_y, pred_decay_z) - distance(true_prod_x, true_prod_y, true_prod_z, true_decay_x, true_decay_y, true_decay_z)))
-                performance_dict["prodx_diff"].append(abs(pred_prod_x - true_prod_x))
-                performance_dict["prody_diff"].append(abs(pred_prod_y - true_prod_y))
-                performance_dict["prodz_diff"].append(abs(pred_prod_z - true_prod_z))
-                performance_dict["decayx_diff"].append(abs(pred_decay_x - true_decay_x))
-                performance_dict["decayy_diff"].append(abs(pred_decay_y - true_decay_y))
-                performance_dict["decayz_diff"].append(abs(pred_decay_z - true_decay_z))
+                performance_dict["gap_diff"].append(distance(pred_prod_x, pred_prod_y, pred_prod_z, pred_decay_x, pred_decay_y, pred_decay_z) - distance(true_prod_x, true_prod_y, true_prod_z, true_decay_x, true_decay_y, true_decay_z))
+                performance_dict["prodx_diff"].append(pred_prod_x - true_prod_x)
+                performance_dict["prody_diff"].append(pred_prod_y - true_prod_y)
+                performance_dict["prodz_diff"].append(pred_prod_z - true_prod_z)
+                performance_dict["decayx_diff"].append(pred_decay_x - true_decay_x)
+                performance_dict["decayy_diff"].append(pred_decay_y - true_decay_y)
+                performance_dict["decayz_diff"].append(pred_decay_z - true_decay_z)
                 performance_dict["prod_diff"].append(distance(pred_prod_x, pred_prod_y, pred_prod_z, true_prod_x, true_prod_y, true_prod_z))
                 performance_dict["decay_diff"].append(distance(pred_decay_x, pred_decay_y, pred_decay_z, true_decay_x, true_decay_y, true_decay_z))
                 performance_dict["MSE"].append((pred_prod_x - true_prod_x)**2 + (pred_prod_y - true_prod_y)**2 + (pred_prod_z - true_prod_z)**2 + (pred_decay_x - true_decay_x)**2 + (pred_decay_y - true_decay_y)**2 + (pred_decay_z - true_decay_z)**2)
         batch_counter += 1
     ###
     
-    # histogram performance
-    fig, axs = plt.subplots(3, 4, figsize=(12, 12))
-    keys = list(performance_dict.keys())
-    for i in range(3):
-        for j in range(4):
-            tile_num = i*4 + j
-            if tile_num >= len(keys):
-                break
-            axs[i, j].hist(performance_dict[keys[tile_num]], bins=20)
-            axs[i, j].set_title(keys[tile_num] + ": mean {:.2f}".format(np.mean(performance_dict[keys[tile_num]])))
-            # axs[i, j].set_xlabel('Units')
-            # axs[i, j].set_ylabel('Count')
-            
-    plt.tight_layout()
-    plt.show()
+
+# Create a list of all performance variables
+performance_variables = [
+    # "angular_diff",
+    # "gap_diff",
+    "prodx_diff",
+    "prody_diff",
+    "prodz_diff",
+    "decayx_diff",
+    "decayy_diff",
+    "decayz_diff",
+    # "prod_diff",
+    # "decay_diff",
+    # "MSE"
+]
+
+# Create a list of performance variable values
+performance_values = [performance_dict[var] for var in performance_variables]
+
+# Plot the histogram triangle
+figure = corner.corner(
+    np.transpose(performance_values),
+    labels=performance_variables,
+    show_titles=True,
+    title_fmt=".2f",
+    plot_contours=True,
+    bins=20,
+    smooth=True,
+    # axes_scale="log",
+)
+
+# histogram performance
+fig, axs = plt.subplots(3, 4, figsize=(12, 12))
+keys = list(performance_dict.keys())
+for i in range(3):
+    for j in range(4):
+        tile_num = i*4 + j
+        if tile_num >= len(keys):
+            break
+        axs[i, j].hist(performance_dict[keys[tile_num]], bins=20)
+        axs[i, j].set_title(keys[tile_num] + ": mean {:.2f}".format(np.mean(performance_dict[keys[tile_num]])))
+        # axs[i, j].set_xlabel('Units')
+        # axs[i, j].set_ylabel('Count')
+        
+plt.tight_layout()
+plt.show()

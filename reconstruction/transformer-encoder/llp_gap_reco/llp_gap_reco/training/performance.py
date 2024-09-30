@@ -44,7 +44,7 @@ def unnormalize_hits(hits, normalization_args):
         hits += normalization_args["position"]["offset"]
     return hits
 
-def plot_event(data, prediction, label = None, normalization_args = None, ax = None):
+def plot_event(data, prediction, label = None, normalization_args = None, ax = None, title = None):
     # List of 3D positions
     hits = data.squeeze()[:,:3].cpu().numpy()
     charges = data.squeeze()[:,3].cpu().numpy().tolist()
@@ -106,7 +106,10 @@ def plot_event(data, prediction, label = None, normalization_args = None, ax = N
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-    ax.set_title('Red: Production vertex, Blue: Decay vertex')
+    if title is not None:
+        ax.set_title(title)
+    else:
+        ax.set_title('Red: Production vertex, Blue: Decay vertex')
 
     # Set all axes limits
     xmin = -600

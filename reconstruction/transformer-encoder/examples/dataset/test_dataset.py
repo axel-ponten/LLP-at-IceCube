@@ -6,10 +6,10 @@ import torch
 import glob
 
 # filepaths
-top_folder = "/home/axel/i3/i3-pq-conversion-files/DLS-115-5e-6/"
+top_folder = "/home/axel/i3/i3-pq-conversion-files/high_energy_uncleaned_210981234_211644345_211828206/"
 index_file_path = top_folder + "indexfile.pq"
 feature_indices_file_path = top_folder + "feature_indices.yaml"
-file_paths = glob.glob(top_folder + "L2*.pq")
+file_paths = glob.glob(top_folder + "base*.pq")
 
 # normalizaton args
 norm_path = "/home/axel/i3/LLP-at-IceCube/reconstruction/transformer-encoder/configs/normalization_args.yaml"

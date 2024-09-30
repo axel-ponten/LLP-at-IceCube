@@ -1,8 +1,9 @@
 from llp_gap_reco.dataset import LLPDataset, UnlabeledLLPDataset, LLPSubset, llp_collate_fn, llp_collate_unlabeled_fn
 from llp_gap_reco.encoder import LLPTransformerModel
-from torch.utils.data import DataLoader
 from llp_gap_reco.training.utils import *
 from llp_gap_reco.training.performance import plot_event, plot_2x2_fn
+import jammy_flows
+from torch.utils.data import DataLoader
 import yaml
 import torch
 import glob
@@ -15,30 +16,30 @@ import argparse
 
 
 # define a function to plot events
-def plot_loop(dataloader, nevents, model, normalization_args):
+def plot_loop(dataloader, nevents, model, pdf, normalization_args):
     counter = 0
     for datavecs, datalens, labels in dataloader:
         with torch.no_grad():
-            predictions = model(datavecs, datalens)
+            pred_mean, pred_std = predict_cnf(model, pdf, datavecs, datalens, samplesize=300)
         for i in range(len(datavecs)):
             if counter == nevents:
                 return
             data = datavecs[i]
             label = labels[i]
-            prediction = predictions[i]
+            prediction = pred_mean[i]
             plot_event(data, prediction, label, normalization_args)
             counter += 1
 
 # define a function to plot events as 2x2
-def plot2x2_loop(dataloader, nevents, model, normalization_args):
+def plot2x2_loop(dataloader, nevents, model, pdf, normalization_args):
     counter = 0
     for datavecs, datalens, labels in dataloader:
         if counter == nevents:
             return
         with torch.no_grad():
-            predictions = model(datavecs, datalens)
+            pred_mean, pred_std = predict_cnf(model, pdf, datavecs, datalens, samplesize=300)
         assert len(datavecs) == 4
-        plot_2x2_fn(datavecs, predictions, labels, normalization_args)
+        plot_2x2_fn(datavecs, pred_mean, labels, normalization_args)
         counter += 1
 
 if __name__ == "__main__":
@@ -52,6 +53,7 @@ if __name__ == "__main__":
     parser.add_argument('--shuffle', action=argparse.BooleanOptionalAction, default=False, help='Shuffle files')
     parser.add_argument('--predicttrain', action=argparse.BooleanOptionalAction, default=False, help='Predict training set')
     parser.add_argument('--modelpath', type=str, help='Path to the model file')
+    parser.add_argument('--flowpath', type=str, help='Path to the flow file')
     parser.add_argument('--modelconfig', type=str, help='Path of the model config')
     parser.add_argument('--normpath', type=str, help='Path to the normalization arguments file')
     parser.add_argument('--plot2x2', action=argparse.BooleanOptionalAction, default=False, help='Plot 2x2 plots')
@@ -67,19 +69,21 @@ if __name__ == "__main__":
     shuffle_files = args.shuffle
     predict_train = args.predicttrain
     model_path = args.modelpath
+    flow_path = args.flowpath
     config_path = args.modelconfig
     norm_path = args.normpath
     plot_2x2 = args.plot2x2
     is_unlabeled = args.unlabeled
 
     # create model
-    model = create_transformer(config_path, flow_str="t", device="cuda")
+    model, pdf = create_full_model(config_path, device="cuda")
     model.eval()
+    pdf.eval()
     model.load_state_dict(torch.load(model_path))
-    
-    
+    pdf.load_state_dict(torch.load(flow_path))
+
+    # create dataset
     batch_size = 4
-    
     # normalizaton args
     with open(norm_path, "r") as file:
         normalization_args = yaml.safe_load(file)
@@ -111,9 +115,11 @@ if __name__ == "__main__":
             dataloader = trainloader
         else:
             dataloader = testloader
-                
+
     if plot_2x2:
-        plot2x2_loop(dataloader, nevents, model, normalization_args)
+        print("Starting 2x2 plot")
+        plot2x2_loop(dataloader, nevents, model, pdf, normalization_args)
     else:
-        plot_loop(dataloader, nevents, model, normalization_args)
+        print("Starting single plot")
+        plot_loop(dataloader, nevents, model, pdf, normalization_args)
     plt.show()

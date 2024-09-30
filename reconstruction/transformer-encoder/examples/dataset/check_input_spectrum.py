@@ -5,10 +5,14 @@ import glob
 import matplotlib.pyplot as plt
 
 # filepaths
-top_folder = "/home/axel/i3/i3-pq-conversion-files/DarkLeptonicScalar.mass-110.eps-1e-5.nevents-50000_ene_1e3_2e5_gap_100_240503.208637138/"
+# top_folder = "/home/axel/i3/i3-pq-conversion-files/DarkLeptonicScalar.mass-110.eps-1e-5.nevents-50000_ene_1e3_2e5_gap_100_240503.208637138/"
+# index_file_path = top_folder + "indexfile.pq"
+# feature_indices_file_path = top_folder + "feature_indices.yaml"
+# file_paths = glob.glob(top_folder + "L2*.pq")
+top_folder = "/home/axel/i3/i3-pq-conversion-files/DarkLeptonicScalar.mass-110.eps-3e-05.nevents-150000.0_ene_2000.0_15000.0_gap_100.0_240602.210981234/"
 index_file_path = top_folder + "indexfile.pq"
 feature_indices_file_path = top_folder + "feature_indices.yaml"
-file_paths = glob.glob(top_folder + "L2*.pq")
+file_paths = glob.glob(top_folder + "base*.pq")
 
 # normalizaton args
 norm_path = "/home/axel/i3/LLP-at-IceCube/reconstruction/transformer-encoder/configs/normalization_args.yaml"
@@ -38,7 +42,7 @@ n_events = len(dataset)
 n_features = dataset[0][0].shape[1]
 print(f"Number of events: {n_events}")
 print(f"Number of features: {n_features}")
-n_events = 10
+n_events = 1000
 inputs = [[] for i in range(n_features)]
 for i in range(n_events):
     data, label = dataset[i]

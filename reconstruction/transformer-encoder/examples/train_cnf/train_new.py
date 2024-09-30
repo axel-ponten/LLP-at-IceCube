@@ -71,7 +71,7 @@ testloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
 # create transformer encoder and cond. normalizing flow
 model, pdf = training_utils.create_full_model(config_path, device="cuda")
 # init for the gaussianization flow
-training_utils.init_pdf_target_space(pdf, train_dataset, n_init=200, device="cuda")
+training_utils.init_pdf_target_space(pdf, train_dataset, n_init=1000, device="cuda")
 
 # print information
 print("Transformer model:", model)
@@ -88,5 +88,6 @@ trainer = Trainer(model, pdf, device="cuda")
 optimizer = torch.optim.Adam(list(model.parameters()) + list(pdf.parameters()), lr=learning_rate)
 scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=10, min_lr=1e-10)
 # train
+print("Grad clip value:", grad_clip_val)
 trainer.train(trainloader, testloader, n_epochs, optimizer, scheduler, models_path,
               start_epoch=0, verbose=True, save_freq=5, grad_clip=grad_clip_val)

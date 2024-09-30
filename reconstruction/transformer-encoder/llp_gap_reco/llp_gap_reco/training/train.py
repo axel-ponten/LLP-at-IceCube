@@ -73,9 +73,12 @@ class Trainer():
             print("Opening loss file from previous training starting at epoch", start_epoch)
             self.train_loss_vals = df["train_loss"].tolist()
             self.test_loss_vals = df["test_loss"].tolist()
+            if "learning_rate" in df.columns:
+                self.learning_rates = df["learning_rate"].tolist()
         else:
             self.train_loss_vals = []
             self.test_loss_vals = []
+            self.learning_rates = []
         
         ###### TRAIN ######
         print("Starting training loop with {} epochs".format(n_epochs))
@@ -171,6 +174,7 @@ class Trainer():
         self.scheduler.step(test_loss)
         self.learning_rate = self.optimizer.param_groups[0]['lr']
         print("Learning rate:", self.learning_rate)
+        self.learning_rates.append(self.learning_rate)
         
         ##### aux end of epoch #####
         # print example outputs
@@ -235,7 +239,7 @@ class Trainer():
         plt.close()
     
     def _save_losses(self):
-        df = pd.DataFrame({"train_loss": self.train_loss_vals, "test_loss": self.test_loss_vals})
+        df = pd.DataFrame({"train_loss": self.train_loss_vals, "test_loss": self.test_loss_vals, "learning_rate": self.learning_rates})
         df.to_csv(self.folder + "loss.csv")
     
     ## helper funcs

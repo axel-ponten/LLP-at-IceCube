@@ -7,58 +7,6 @@ import torch
 import jammy_flows
 import numpy as np
 
-class EarlyStopper:
-    """
-    Class for implementing early stopping during training.
-
-    Attributes:
-        patience (int): The number of epochs to wait before stopping if the validation loss does not improve.
-        percent_tolerance (float): The percentage tolerance of the running average loss for determining if the validation loss has improved.
-
-    Methods:
-        early_stop(validation_loss): Checks if the validation loss has stopped improving and returns True if early stopping criteria is met, False otherwise.
-    """
-
-    def __init__(self, patience=15, percent_tolerance=0.0):
-        self.patience = patience
-        self.percent_tolerance = percent_tolerance # of running avg loss
-
-        self.counter = 0
-        self.min_validation_loss = float('inf')
-        # for running average of validation loss
-        self.running_average = []
-        self.average_length = 10
-
-    def early_stop(self, validation_loss):
-        """
-        Checks if the validation loss has stopped improving and returns True if early stopping criteria is met, False otherwise.
-
-        Args:
-            validation_loss (float): The current validation loss.
-
-        Returns:
-            bool: True if early stopping criteria is met, False otherwise.
-        """
-        if self.percent_tolerance > 0.0:
-            # running average of the last few validation losses
-            if len(self.running_average) >= self.average_length:
-                self.running_average.pop(0)
-            self.running_average.append(validation_loss)
-            tolerance = self.percent_tolerance * np.mean(self.running_average)
-        else:
-            tolerance = 0.0
-        
-        # new minimum?
-        if validation_loss < self.min_validation_loss:
-            self.min_validation_loss = validation_loss
-            self.counter = 0
-        # counter increment?
-        elif validation_loss > (self.min_validation_loss + tolerance):
-            self.counter += 1
-            if self.counter >= self.patience:
-                return True
-        return False
-
 def predict_cnf(model, pdf, datavecs, datalens, samplesize=300):
     def variance_from_covariance(cov_mx):
         return np.sqrt(np.diag(cov_mx))

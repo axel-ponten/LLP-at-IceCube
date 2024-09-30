@@ -67,7 +67,6 @@ class LLPDataset(Dataset):
         
         # dataset type
         self.dataset_type = dataset_type
-        
 
     def __len__(self):
         return self.num_events
@@ -109,7 +108,17 @@ class LLPDataset(Dataset):
             label = self._normalize_target(label) 
         
         return data, label
-    
+
+    def get_data_and_info(self, idx):
+        data, label = self.__getitem__(idx)
+        muon_energy, muon_zenith, muon_length = self.get_muon_info_from_idx(idx)
+        return data, label, muon_energy, muon_zenith, muon_length
+
+    def get_event_run_info(self, idx):
+        """ Returns event id and run id of given an idx. """
+        row = self.total_index_info.iloc[idx]
+        return row["event_id"], row["run_id"]
+
     def transform_data(self, data):
         """ Add and modify information to the data."""
         data = np.stack(data, axis=0)   
@@ -147,6 +156,17 @@ class LLPDataset(Dataset):
             self.total_index_info = grouped_index_info.sample(frac=1).reset_index(drop=True)
         else:
             print("INFO! Called LLPDataset.shuffle() but shuffle_files is False. No shuffling done.")
+            
+    def get_muon_info(self, event_id, run_id):
+        """ Get muon energy, zenith and length from event_id and run_id. """
+        # get row with event_id and run_id
+        row = self.total_index_info[(self.total_index_info["event_id"] == event_id) & (self.total_index_info["run_id"] == run_id)]
+        return row["muon_energy"], row["muon_zenith"], row["muon_length"]
+    
+    def get_muon_info_from_idx(self, idx):
+        """ Get muon energy, zenith and length from index. """
+        row = self.total_index_info.iloc[idx]
+        return row["muon_energy"], row["muon_zenith"], row["muon_length"]
 
 class UnlabeledLLPDataset(LLPDataset):
     """
@@ -157,6 +177,9 @@ class UnlabeledLLPDataset(LLPDataset):
         index_row = self.total_index_info.iloc[idx]
         file_index = index_row["file_index"]
         index_within_file = index_row["index_within_file"]
+        # convert to int for indexing
+        file_index = int(file_index)
+        index_within_file = int(index_within_file)
         
         # is data already loaded? if not, load new file into memory
         if self.current_load_file_index != file_index:
@@ -183,6 +206,14 @@ class LLPSubset(Subset):
     
     def shuffle(self):
         self.dataset.shuffle()
+        
+    def get_muon_info_from_idx(self, idx):
+        true_index = self.indices[idx]
+        return self.dataset.get_muon_info_from_idx(true_index)
+    
+    def get_data_and_info(self, idx):
+        true_index = self.indices[idx]
+        return self.dataset.get_data_and_info(true_index)
 
 ###### COLLATE FUNCTION FOR DATALOADER ######
 def llp_collate_fn(batch):
