@@ -134,6 +134,7 @@ tray.Add(I3LLPProbabilityCalculator,
          llp_estimator = DLS_estimator,
          n_steps       = n_steps,
          mctree_name   = mctree_name,
+         min_gap       = min_gap,
 )
 tray.Add(
     hdfwriter.I3SimHDFWriter,
